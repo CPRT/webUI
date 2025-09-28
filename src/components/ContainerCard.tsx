@@ -33,7 +33,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const logBoxRef = useRef<HTMLPreElement>(null);
   const { NEXT_PUBLIC_LAUNCHSERVER } = useEnvContext();
-  const apiBase = NEXT_PUBLIC_LAUNCHSERVER || 'http://localhost:8080';
+  const apiBase = NEXT_PUBLIC_LAUNCHSERVER || 'localhost:8080';
 
   // Sync status and clear logs/eventMsg when container ID changes (new container after restart)
   useEffect(() => {

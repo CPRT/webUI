@@ -12,5 +12,3 @@ export default function Launch() {
     </Layout>
   );
 }
-
-// export default ContainerPage;
