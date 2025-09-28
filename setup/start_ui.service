@@ -1,0 +1,12 @@
+[Unit]
+Description=Start ROS 2 WebUI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+ExecStart=/usr/local/bin/start_ui.sh
+
+[Install]
+WantedBy=multi-user.target

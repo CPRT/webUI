@@ -1,6 +1,10 @@
 #!/bin/bash
 
-LOCAL_IP=$(hostname -I | awk '{print $1}')
+LOCAL_IP=""
+while [ -z "$LOCAL_IP" ]; do
+  LOCAL_IP=$(hostname -I | awk '{print $1}')
+  sleep 1
+done
 TILING_SERVER_PORT=80
 echo "Local IP address: $LOCAL_IP"
 
@@ -17,5 +21,6 @@ docker run --rm --name tiling-server-container -d \
 docker run --rm --name cprt-webserver \
   -p 3000:3000 \
   -e NEXT_PUBLIC_TILE_SERVER="$LOCAL_IP:$TILING_SERVER_PORT" \
+  -e NEXT_PUBLIC_LAUNCHSERVER="$LOCAL_IP:8080" \
   cprtsoftware/web-ui:latest
 
