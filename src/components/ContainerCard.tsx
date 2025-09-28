@@ -16,35 +16,37 @@ export interface ContainerOption {
 export interface ContainerCardProps {
   option: ContainerOption;
   onStart: (key: string) => Promise<void>;
-  onStop: (id: string | null) => Promise<void>;
+  onStop: (key: string | null) => Promise<void>;
+  eventMsg?: string | null;
 }
 
 const ContainerCard: React.FC<ContainerCardProps> = ({
   option,
   onStart,
   onStop,
+  eventMsg: externalEventMsg = null,
 }) => {
   const { key, description, image, startTime, id, logsWsUrl } = option;
-  const [statusState, setStatusState] = useState<'running' | 'stopped'>(option.status);
+  const [statusState, setStatusState] = useState<'running' | 'stopping' | 'stopped'>(option.status);
   const [logs, setLogs] = useState<string[]>([]);
-  const [eventMsg, setEventMsg] = useState<string | null>(null);
+  const [eventMsg, setEventMsg] = useState<string | null>(externalEventMsg);
   const socketRef = useRef<WebSocket | null>(null);
-  const sseRef = useRef<EventSource | null>(null);
   const logBoxRef = useRef<HTMLPreElement>(null);
+  const { NEXT_PUBLIC_LAUNCHSERVER } = useEnvContext();
+  const apiBase = NEXT_PUBLIC_LAUNCHSERVER || 'http://localhost:8080';
 
   // Sync status and clear logs/eventMsg when container ID changes (new container after restart)
   useEffect(() => {
     setStatusState(option.status);
     setLogs([]);
-    setEventMsg(null);
-  }, [option.id]);
+    setEventMsg(externalEventMsg);
+  }, [option.id, externalEventMsg, option.status]);
 
   const handleStart = async () => {
     await onStart(key);
-    // logs and eventMsg cleared by above effect on id change
   };
 
-  // 🟢 Connect WebSocket logs when running and logsWsUrl changes
+  // Connect WebSocket logs when running and logsWsUrl changes
   useEffect(() => {
     if (statusState === 'running' && logsWsUrl) {
       const socket = new WebSocket(logsWsUrl);
@@ -59,30 +61,6 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
       };
     }
   }, [logsWsUrl, statusState]);
-
-  // 🔵 Connect SSE for exit events on container ID or key change
-  useEffect(() => {
-    if (id) {
-      const { NEXT_PUBLIC_LAUNCHSERVER } = useEnvContext();
-      const apiBase = NEXT_PUBLIC_LAUNCHSERVER || 'http://localhost:8080';
-      const source = new EventSource(`${apiBase}/events/${key}`);
-      sseRef.current = source;
-
-      source.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          setEventMsg(`Exited with code ${data.code} at ${data.timestamp}`);
-          setStatusState('stopped');
-        } catch (err) {
-          console.warn('Failed to parse SSE event', err);
-        }
-      };
-
-      return () => {
-        source.close();
-      };
-    }
-  }, [id, key]);
 
   // Auto-scroll logs when new logs arrive
   useEffect(() => {
@@ -123,18 +101,16 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
             Start
           </button>
         ) : (
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button
-              onClick={() => onStop(id)}
-              style={{
-                fontSize: '16px',
-                padding: '10px 20px',
-                cursor: 'pointer',
-              }}
-            >
-              Stop
-            </button>
-          </div>
+          <button
+            onClick={() => onStop(key)}
+            style={{
+              fontSize: '16px',
+              padding: '10px 20px',
+              cursor: 'pointer',
+            }}
+          >
+            Stop
+          </button>
         )}
       </div>
   
@@ -157,7 +133,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
         </p>
       )}
   
-      {statusState === 'running' && (
+      {statusState !== 'stopped' && (
         <div style={{ marginTop: 12 }}>
           <strong>Live Logs:</strong>
           <pre
@@ -181,7 +157,6 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
       )}
     </div>
   );
-  };
-  
-  export default ContainerCard;
- 
+};
+
+export default ContainerCard;
