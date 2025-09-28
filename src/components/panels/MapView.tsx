@@ -27,8 +27,6 @@ type MapViewProps = {
 const MapView: React.FC<MapViewProps> = ({offline}) => {
   const { waypoints } = useWaypoints();
   const { NEXT_PUBLIC_TILE_SERVER } = useEnvContext();
-  console.log(useEnvContext());
-  console.log(NEXT_PUBLIC_TILE_SERVER);
   const tileServer = NEXT_PUBLIC_TILE_SERVER || "localhost:80";
 
   return (
