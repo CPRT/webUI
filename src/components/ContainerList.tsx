@@ -2,7 +2,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import ContainerCard, { ContainerOption } from './ContainerCard';
 import SetResetPanel from './SetResetPanel';
-import Cookies from 'js-cookie';
 
 const DEFAULT_API_BASE = 'http://localhost:8080';
 
@@ -11,13 +10,6 @@ const ContainerList: React.FC = () => {
   const [eventMsgs, setEventMsgs] = useState<Record<string, string | null>>({});
   const [apiBase, setApiBase] = useState(DEFAULT_API_BASE);
   const sseRef = useRef<EventSource | null>(null);
-
-  useEffect(() => {
-    const savedApiBase = Cookies.get('launch_server_url');
-    if (savedApiBase) {
-      setApiBase(savedApiBase);
-    }
-  }, []);
 
   const fetchOptions = async () => {
     try {
@@ -106,7 +98,6 @@ const ContainerList: React.FC = () => {
   };
 
   const handleReset = () => {
-    Cookies.remove('launch_server_url');
     setApiBase(DEFAULT_API_BASE);
   };
 

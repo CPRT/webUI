@@ -9,7 +9,7 @@ interface SetResetPanelProps {
   id: string;
 }
 
-const SetResetPanel: React.FC<SetResetPanelProps> = ({ onUrlChange, onReset, defaultUrl,  id }) => {
+const SetResetPanel: React.FC<SetResetPanelProps> = ({ onUrlChange, onReset, defaultUrl, id }) => {
   const [url, setUrl] = useState(defaultUrl);
 
   useEffect(() => {
