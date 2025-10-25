@@ -1,18 +1,27 @@
+'use client';
 import React, { useEffect, useState, useRef } from 'react';
 import ContainerCard, { ContainerOption } from './ContainerCard';
-import { useEnvContext } from 'next-runtime-env';
+import SetResetPanel from './SetResetPanel';
+import Cookies from 'js-cookie';
+
+const DEFAULT_API_BASE = 'http://localhost:8080';
 
 const ContainerList: React.FC = () => {
   const [options, setOptions] = useState<ContainerOption[]>([]);
   const [eventMsgs, setEventMsgs] = useState<Record<string, string | null>>({});
+  const [apiBase, setApiBase] = useState(DEFAULT_API_BASE);
   const sseRef = useRef<EventSource | null>(null);
 
-  const { NEXT_PUBLIC_LAUNCHSERVER } = useEnvContext();
-  const API_BASE = NEXT_PUBLIC_LAUNCHSERVER ? `http://${NEXT_PUBLIC_LAUNCHSERVER}` : 'http://localhost:8080';
+  useEffect(() => {
+    const savedApiBase = Cookies.get('launch_server_url');
+    if (savedApiBase) {
+      setApiBase(savedApiBase);
+    }
+  }, []);
 
   const fetchOptions = async () => {
     try {
-      const res = await fetch(`${API_BASE}/options`);
+      const res = await fetch(`${apiBase}/options`);
       const data: ContainerOption[] = await res.json();
       setOptions(data);
 
@@ -33,7 +42,7 @@ const ContainerList: React.FC = () => {
     fetchOptions();
 
     // Setup single SSE connection
-    const source = new EventSource(`${API_BASE}/events`);
+    const source = new EventSource(`${apiBase}/events`);
     sseRef.current = source;
 
     source.onmessage = (event) => {
@@ -43,23 +52,21 @@ const ContainerList: React.FC = () => {
           console.warn('Unknown event data');
           return;
         }
+
+        const key = data.container.replace(/-instance$/, '');
+
         if (data.event === 'exit') {
-          // Extract key from container name like "key-instance"
-          const key = data.container.replace(/-instance$/, '');
           setEventMsgs((prev) => ({
             ...prev,
             [key]: `Exited with code ${data.code} at ${data.timestamp}`,
           }));
-          // Optionally update options state to reflect stopped status here, or refetch
           fetchOptions();
         } else if (data.event === 'stopping') {
-          const key = data.container.replace(/-instance$/, '');
           setEventMsgs((prev) => ({
             ...prev,
             [key]: 'Stopping...',
           }));
         } else if (data.event === 'starting') {
-          const key = data.container.replace(/-instance$/, '');
           setEventMsgs((prev) => ({
             ...prev,
             [key]: 'Started...',
@@ -74,30 +81,46 @@ const ContainerList: React.FC = () => {
     source.onerror = () => {
       console.error('SSE connection error');
       source.close();
-      // Optionally implement reconnect logic here
     };
 
     return () => {
       source.close();
     };
-  }, [API_BASE]);
+  }, [apiBase]);
 
   const startContainer = async (key: string) => {
-    await fetch(`${API_BASE}/start/${key}`, { method: 'POST' });
+    await fetch(`${apiBase}/start/${key}`, { method: 'POST' });
     await fetchOptions();
     setEventMsgs((prev) => ({ ...prev, [key]: null }));
   };
 
   const stopContainer = async (key: string | null) => {
     if (!key) return;
-    await fetch(`${API_BASE}/stop/${key}`, { method: 'POST' });
+    await fetch(`${apiBase}/stop/${key}`, { method: 'POST' });
     await fetchOptions();
     setEventMsgs((prev) => ({ ...prev, [key]: null }));
+  };
+
+  const handleUrlChange = (url: string) => {
+    setApiBase(url);
+  };
+
+  const handleReset = () => {
+    Cookies.remove('launch_server_url');
+    setApiBase(DEFAULT_API_BASE);
   };
 
   return (
     <div style={{ padding: 20, fontFamily: 'Arial, sans-serif' }}>
       <h2>Docker Launch Options</h2>
+      <div style={{ marginTop: "2rem", display: "flex", justifyContent: "center" }}>
+        <SetResetPanel
+          id="launch_server_url"
+          defaultUrl={DEFAULT_API_BASE}
+          onUrlChange={handleUrlChange}
+          onReset={handleReset}
+        />
+      </div>
       {options.map((opt) => (
         <ContainerCard
           key={opt.key}

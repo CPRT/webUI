@@ -2,16 +2,18 @@
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 
-interface WebRTCSignalingConfigProps {
+interface SetResetPanelProps {
   onUrlChange: (url: string) => void;
   onReset: () => void;
+  defaultUrl: string;
+  id: string;
 }
 
-const WebRTCSignalingConfig: React.FC<WebRTCSignalingConfigProps> = ({ onUrlChange, onReset }) => {
-  const [url, setUrl] = useState('ws://localhost:8443');
+const SetResetPanel: React.FC<SetResetPanelProps> = ({ onUrlChange, onReset, defaultUrl,  id }) => {
+  const [url, setUrl] = useState(defaultUrl);
 
   useEffect(() => {
-    const savedUrl = Cookies.get('signaling_server_url');
+    const savedUrl = Cookies.get(id);
     if (savedUrl) {
       setUrl(savedUrl);
       onUrlChange(savedUrl);
@@ -23,7 +25,7 @@ const WebRTCSignalingConfig: React.FC<WebRTCSignalingConfigProps> = ({ onUrlChan
   };
 
   const handleSave = () => {
-    Cookies.set('signaling_server_url', url);
+    Cookies.set(id, url);
     onUrlChange(url);
   };
 
@@ -101,4 +103,4 @@ const WebRTCSignalingConfig: React.FC<WebRTCSignalingConfigProps> = ({ onUrlChan
   );
 };
 
-export default WebRTCSignalingConfig;
+export default SetResetPanel;
