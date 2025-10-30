@@ -21,6 +21,5 @@ docker run --rm --name tiling-server-container -d \
 docker run --rm --name cprt-webserver \
   -p 3000:3000 \
   -e NEXT_PUBLIC_TILE_SERVER="$LOCAL_IP:$TILING_SERVER_PORT" \
-  -e NEXT_PUBLIC_LAUNCHSERVER="$LOCAL_IP:8080" \
   cprtsoftware/web-ui:latest
 

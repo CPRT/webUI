@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import ROSLIB from "roslib";
 import WebRTCCustomPresetForm from "./WebRTCCustomPresetForm";
-import WebRTCSignalingConfig from "./WebRTCSignalingConfig";
+import SetResetPanel from "./SetResetPanel";
 import WebRTCPresetsPanel from "./WebRTCPresetsPanel";
 import VideoCapture from "./VideoCapture";
 
@@ -205,7 +205,7 @@ const GstWebRTCPage: React.FC<WebRTCClientPageProps> = ({
         <WebRTCPresetsPanel onPresetSelect={newPreset} />
       </div>
       <div style={{ marginTop: "2rem", display: "flex", justifyContent: "center" }}>
-        <WebRTCSignalingConfig onUrlChange={setSignalingUrl} onReset={() => reset()}/>
+        <SetResetPanel onUrlChange={setSignalingUrl} onReset={() => reset()} defaultUrl='ws://localhost:8443' id='signaling_server_url'/>
       </div>
       <div
         style={{
