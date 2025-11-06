@@ -112,15 +112,23 @@ const ContainerList: React.FC = () => {
           onReset={handleReset}
         />
       </div>
-      {options.map((opt) => (
-        <ContainerCard
-          key={opt.key}
-          option={opt}
-          onStart={startContainer}
-          onStop={stopContainer}
-          eventMsg={eventMsgs[opt.key] || null}
-        />
-      ))}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(clamp(300px, 100%, 700px), 1fr))',
+          gap: 16,
+          alignItems: 'start',
+        }}>
+        {options.map((opt) => (
+          <ContainerCard
+            key={opt.key}
+            option={opt}
+            onStart={startContainer}
+            onStop={stopContainer}
+            eventMsg={eventMsgs[opt.key] || null}
+          />
+        ))}
+      </div>
     </div>
   );
 };
