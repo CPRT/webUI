@@ -2,6 +2,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import ContainerCard, { ContainerOption } from './ContainerCard';
 import SetResetPanel from './SetResetPanel';
+import toast from "react-hot-toast";
+
+
+const dockersToPull = [
+  'cprtsoftware/rover:arm64',
+  'cprtsoftware/web-ui:latest',
+  'cprtsoftware/container-launcher:latest',
+];
 
 const DEFAULT_API_BASE = 'http://localhost:8080';
 
@@ -97,9 +105,34 @@ const ContainerList: React.FC = () => {
     setApiBase(url);
   };
 
-  const handleReset = () => {
-    setApiBase(DEFAULT_API_BASE);
+  const handlePull = async () => {
+    const ok = confirm(
+      `This updates the rover to the latest merged version. Are you sure you want to continue?`
+    );
+    if (!ok) return;
+
+    const promises = dockersToPull.map(async (docker) => {
+      const id = toast.loading(`Pulling ${docker}…`);
+
+      try {
+        const encoded = encodeURIComponent(docker);
+        const res = await fetch(`${apiBase}/pull/${encoded}`, { method: "PUT" });
+        const data = await res.json();
+
+        if (res.ok) {
+          toast.success(`Pulled ${docker} successfully`, { id });
+        } else {
+          toast.error(`Failed to pull ${docker}: ${data?.error}`, { id });
+        }
+      } catch (err: any) {
+        toast.error(`Error pulling ${docker}: ${err.message}`, { id });
+      }
+    });
+
+    await Promise.all(promises);
+    toast("All pulls finished");
   };
+
 
   return (
     <div style={{ padding: 20, fontFamily: 'Arial, sans-serif' }}>
@@ -109,7 +142,8 @@ const ContainerList: React.FC = () => {
           id="launch_server_url"
           defaultUrl={DEFAULT_API_BASE}
           onUrlChange={handleUrlChange}
-          onReset={handleReset}
+          onReset={handlePull}
+          button2Name='Update system'
         />
       </div>
       <div
