@@ -7,9 +7,11 @@ interface SetResetPanelProps {
   onReset: () => void;
   defaultUrl: string;
   id: string;
+  button1Name?: string;
+  button2Name?: string;
 }
 
-const SetResetPanel: React.FC<SetResetPanelProps> = ({ onUrlChange, onReset, defaultUrl, id }) => {
+const SetResetPanel: React.FC<SetResetPanelProps> = ({ onUrlChange, onReset, defaultUrl, id, button1Name="Set Server", button2Name="Reset" }) => {
   const [url, setUrl] = useState(defaultUrl);
 
   useEffect(() => {
@@ -77,7 +79,7 @@ const SetResetPanel: React.FC<SetResetPanelProps> = ({ onUrlChange, onReset, def
         onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.97)')}
         onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
       >
-        Set Server
+        {button1Name}
       </button>
       <button
         onClick={onReset}
@@ -97,7 +99,7 @@ const SetResetPanel: React.FC<SetResetPanelProps> = ({ onUrlChange, onReset, def
         onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.97)')}
         onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
       >
-        Reset
+        {button2Name}
       </button>
     </div>
   );
