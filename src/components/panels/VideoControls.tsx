@@ -65,7 +65,7 @@ const VideoControls: React.FC = () => {
         padding: "1rem",
       }}
     >
-      <div style={{ display: "flex", gap: "1rem", height: "calc(100% - 3rem)" }}>
+      <div style={{ display: "flex", gap: "1rem", height: "100%" }}>
         {/* Left half: controls */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
