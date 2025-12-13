@@ -6,25 +6,11 @@ import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
 import VideoPresetsPanel from "../VideoPresetsPanel";
 import SrtStats from "../SrtStats";
-
-
-export interface VideoSource {
-  name: string;
-  width: number;
-  height: number;
-  origin_x: number;
-  origin_y: number;
-}
+import type { VideoSource, VideoOutRequest } from "../WebRTCClientPage";
 
 interface VideoOutResponse {
   success: boolean;
 }
-
-export interface VideoOutRequest {
-  num_sources: number;
-  sources: VideoSource[];
-}
-
 const VideoControls: React.FC = () => {
   const { ros, connectionStatus: rosStatus } = useROS();
 
@@ -130,7 +116,7 @@ const VideoControls: React.FC = () => {
               }}
             >
             <VideoPresetsPanel
-            onPresetSelect={(name, preset) => newPreset(name, preset)}
+              onPresetSelect={(name, preset) => newPreset(name, preset)}
             />
             </div>
           </div>
@@ -139,14 +125,14 @@ const VideoControls: React.FC = () => {
 
         {/* Right half: form */}
         <div
-        style={{
+          style={{
             height: "100%",
             overflow: "auto",
             flex: 1, 
             minWidth: 0
-        }}
+          }}
         >
-        <VideoCustomPresetForm onSubmit={(preset) => newPreset("Custom", preset)} />
+          <VideoCustomPresetForm onSubmit={(preset) => newPreset("Custom", preset)} />
         </div>
       </div>
     </div>

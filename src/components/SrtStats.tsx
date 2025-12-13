@@ -56,7 +56,7 @@ const SrtStats: React.FC = () => {
     const topic = new ROSLIB.Topic({
       ros,
       name: "/srt_node/stats",
-      messageType: "interfaces/msg/srtstats",
+      messageType: "interfaces/msg/SrtStats",
     });
 
     const onMsg = (msg: any) => {
@@ -93,9 +93,6 @@ const SrtStats: React.FC = () => {
     return { lossPct, retransPct };
   }, [stats]);
 
-  const stale =
-    lastUpdateMs !== null ? Date.now() - lastUpdateMs > 2000 : true;
-
   return (
     <div
       style={{
@@ -112,19 +109,19 @@ const SrtStats: React.FC = () => {
           padding: "0.6rem",
         }}
       >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
             alignItems: "baseline",
-          borderBottom: "1px solid #444",
-          paddingBottom: "0.3rem",
-          flex: "0 0 auto",
-        }}
-      >
-            <h2 style={{ margin: 0, fontSize: "1.1rem", color: "#f1f1f1" }}>
+            borderBottom: "1px solid #444",
+            paddingBottom: "0.3rem",
+            flex: "0 0 auto",
+          }}
+        >
+          <h2 style={{ margin: 0, fontSize: "1.1rem", color: "#f1f1f1" }}>
             SRT Stats:
-            </h2>
+          </h2>
         </div>
         <div
           style={{
