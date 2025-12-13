@@ -204,7 +204,6 @@ const OrientationDisplayPanel: React.FC = () => {
   
   return (
     <div className="orientation-panel">
-      <h3>UGV Orientation</h3>
       <div className="viewport" ref={containerRef}>
       <div className="bus-voltage">{getBusVoltage() ? `Bus Voltage: ${getBusVoltage()} V` : 'Waiting for voltage...'}</div>
         <div className="motor-stats top-left">{renderMotorInfo('Front Left', motorStats.fl)}</div>

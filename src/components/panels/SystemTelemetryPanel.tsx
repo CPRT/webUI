@@ -57,7 +57,6 @@ const SystemTelemetryPanel: React.FC = () => {
 
   return (
     <div className="telemetry-panel">
-      <h3>System Telemetry</h3>
       <div className="chart-container">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>

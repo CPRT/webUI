@@ -102,15 +102,6 @@ return (
       height: '100%',
       padding: '1rem'
     }}>
-      <h2 style={{ 
-        borderBottom: '1px solid #444', 
-        paddingBottom: '0.3rem',
-        color: '#f1f1f1',
-        margin: 0,
-        marginBottom: '0.5rem'
-      }}>
-        Science
-      </h2>
       <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
         <li
           style={{
