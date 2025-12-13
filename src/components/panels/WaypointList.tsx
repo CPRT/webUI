@@ -36,7 +36,6 @@ const WaypointList: React.FC = () => {
         color: '#f1f1f1',
       }}
     >
-      <h2 style={{ borderBottom: '1px solid #444', paddingBottom: '0.5rem' }}>Waypoint List</h2>
       {waypoints.length === 0 ? (
         <p>No waypoints added. Click on the map to add one👿</p>
       ) : (

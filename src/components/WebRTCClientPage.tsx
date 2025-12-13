@@ -4,9 +4,9 @@ import "@/webrtc-api";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import ROSLIB from "roslib";
-import WebRTCCustomPresetForm from "./WebRTCCustomPresetForm";
+import VideoCustomPresetForm from "./VideoCustomPresetForm";
 import SetResetPanel from "./SetResetPanel";
-import WebRTCPresetsPanel from "./WebRTCPresetsPanel";
+import VideoPresetsPanel from "./VideoPresetsPanel";
 import VideoCapture from "./VideoCapture";
 
 import { useROS } from "@/ros/ROSContext";
@@ -202,7 +202,7 @@ const GstWebRTCPage: React.FC<WebRTCClientPageProps> = ({
     <div>
       <ul id="remote-streams"></ul>
       <div style={{ width: "100%", height: "10vh", display: "flex" }}>
-        <WebRTCPresetsPanel onPresetSelect={newPreset} />
+        <VideoPresetsPanel onPresetSelect={newPreset} />
       </div>
       <div style={{ marginTop: "2rem", display: "flex", justifyContent: "center" }}>
         <SetResetPanel onUrlChange={setSignalingUrl} onReset={() => reset()} defaultUrl='ws://localhost:8443' id='signaling_server_url'/>
@@ -220,7 +220,7 @@ const GstWebRTCPage: React.FC<WebRTCClientPageProps> = ({
           <VideoCapture />
         </div>
         <div style={{ flex: "1 1 300px", maxWidth: "600px" }}>
-          <WebRTCCustomPresetForm onSubmit={(preset) => newPreset("Custom", preset)} />
+          <VideoCustomPresetForm onSubmit={(preset) => newPreset("Custom", preset)} />
         </div>
       </div>
     </div>

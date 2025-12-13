@@ -83,19 +83,6 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
         flexDirection: "column",
       }}
     >
-      <h3
-        style={{
-          margin: "0",
-          marginBottom: "1rem",
-          fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-          fontSize: "1.25rem",
-          textAlign: "center",
-          borderBottom: "1px solid #444",
-          paddingBottom: "0.5rem",
-        }}
-      >
-        Connection Health (Mbps)
-      </h3>
 
       <div style={{ marginTop: "2rem", height: "250px" }}>
         <ResponsiveContainer width="100%" height="100%">

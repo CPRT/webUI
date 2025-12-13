@@ -44,7 +44,6 @@ const GoalSetterPanel: React.FC = () => {
 
   return (
     <div className="goal-panel">
-      <h3>Set Navigation Goal</h3>
       <div className="input-group">
         <label>Latitude:</label>
         <input
