@@ -35,9 +35,8 @@ const formatBandwidth = (bps: number | null | undefined) => {
     val /= 1000;
     i++;
   }
-  const sign = bps < 0 ? "-" : "";
   const fixed = val >= 100 ? 0 : val >= 10 ? 1 : 2;
-  return `${sign}${val.toFixed(fixed)} ${units[i]}`;
+  return `${val.toFixed(fixed)} ${units[i]}`;
 };
 
 const SrtStats: React.FC = () => {
@@ -60,13 +59,14 @@ const SrtStats: React.FC = () => {
     });
 
     const onMsg = (msg: any) => {
-      setStats({
-        rtt: Number(msg.rtt),
-        bandwidth: Number(msg.bandwidth),
-        packets_sent: Number(msg.packets_sent),
-        packets_lost: Number(msg.packets_lost),
-        packets_retransmitted: Number(msg.packets_retransmitted),
-      });
+      const newData: SrtStatsMsg = {
+        rtt: msg.rtt,
+        bandwidth: msg.bandwidth,
+        packets_sent: msg.packets_sent,
+        packets_lost: msg.packets_lost,
+        packets_retransmitted: msg.packets_retransmitted,
+      };
+      setStats(newData);
       setLastUpdateMs(Date.now());
     };
 
