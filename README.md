@@ -128,3 +128,14 @@ If you experience issues with peer dependencies during installation, ensure you 
 
 - Verify that your ROS2 system and `rosbridge_server` are running and accessible.
 - Check that the correct topics (`/system_telemetry`, `/fix`, etc.) are being published.
+
+## Attribution
+
+This project is based on and adapted from the following open-source repository:
+
+- **bob-ros2** by *noodlekid*  
+  https://github.com/noodlekid/bob-ros2
+
+Credit for the original concept, structure, and implementation belongs to the original author.  
+This project includes modifications and extensions for its specific use case.
+
