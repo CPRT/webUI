@@ -8,8 +8,6 @@ import {
   MosaicPath,
 } from 'react-mosaic-component';
 import 'react-mosaic-component/react-mosaic-component.css';
-import NodeManagerPanel from './NodeManagerPanel';
-import WebRTCClientPanel from './WebRTCClientPanel';
 import MapView from './MapView';
 import WaypointList from './WaypointList';
 import SystemTelemetryPanel from './SystemTelemetryPanel';
@@ -17,8 +15,9 @@ import OrientationDisplayPanel from './OrientationDisplayPanel';
 import GoalSetterPanel from './GoalSetterPanel';
 import GasSensor from './GasSensor';
 import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
+import VideoControls from './VideoControls';
 
-type MosaicKey = 'mapView' | 'rosMonitor' | 'waypointList' | 'nodeManager' | 'webrtcStream' | 'gasSensor' | 'orientationDisplay' | 'goalSetter' | 'networkHealthMonitor';
+type MosaicKey = 'mapView' | 'rosMonitor' | 'waypointList' | 'videoControls' | 'gasSensor' | 'orientationDisplay' | 'goalSetter' | 'networkHealthMonitor';
 
 const MosaicDashboard: React.FC = () => {
   // TODO: paramaterize layout for custom layout configs
@@ -29,27 +28,30 @@ const MosaicDashboard: React.FC = () => {
       first: 'mapView',
       second: {
         direction: 'row',
-        first: 'goalSetter',
+        first: {
+          direction: 'row',
+          first: 'rosMonitor',
+          second: 'networkHealthMonitor',
+        },
         second: 'orientationDisplay',
-        splitPercentage: 50,
+        splitPercentage: 55,
       },
-      splitPercentage: 50,
+      splitPercentage: 55,
     },
     second: {
       direction: 'column',
-      first: {
-        direction: 'row',
-        first: 'rosMonitor',
-        second: 'networkHealthMonitor',
-        splitPercentage: 60
-      },
+      first: 'videoControls',
       second: {
         direction: 'row',
         first: 'waypointList',
-        second: 'gasSensor',
-        splitPercentage: 70,
+        second: {
+          direction: 'row',
+          first: 'gasSensor',
+          second: 'goalSetter',
+        },
+        splitPercentage: 50,
       },
-      splitPercentage: 40,
+      splitPercentage: 50,
     },
     splitPercentage: 60,
   });
@@ -70,16 +72,10 @@ const MosaicDashboard: React.FC = () => {
             <WaypointList />
           </MosaicWindow>
         );
-      case 'nodeManager':
-        return (
-          <MosaicWindow<MosaicKey> title="Node Manager" path={path}>
-            <NodeManagerPanel />
-          </MosaicWindow>
-        );
-      case 'webrtcStream':
+      case 'videoControls':
         return (
           <MosaicWindow<MosaicKey> title="Video Stream" path={path}>
-            <WebRTCClientPanel config={{ mockMode: true, signalingUrl: 'ws://localhost:8443' }} />
+            <VideoControls />
           </MosaicWindow>
         );
       case 'rosMonitor':
@@ -109,7 +105,7 @@ const MosaicDashboard: React.FC = () => {
       
       case 'goalSetter':
         return (
-          <MosaicWindow<MosaicKey> title="Goal Setter" path={path}>
+          <MosaicWindow<MosaicKey> title="Nav2" path={path}>
             <GoalSetterPanel />
           </MosaicWindow>
         );
@@ -137,7 +133,8 @@ const MosaicDashboard: React.FC = () => {
         }
         .mosaic-window-title {
           background-color: #2d2d2d;
-          color: #f1f1f1;
+          color: #f1f1f1 !important;
+          font-size: 1.25rem;
           border-bottom: 1px solid #444;
         }
         .mosaic-window-body {
