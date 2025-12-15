@@ -32,8 +32,6 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
   const [eventMsg, setEventMsg] = useState<string | null>(externalEventMsg);
   const socketRef = useRef<WebSocket | null>(null);
   const logBoxRef = useRef<HTMLPreElement>(null);
-  const { NEXT_PUBLIC_LAUNCHSERVER } = useEnvContext();
-  const apiBase = NEXT_PUBLIC_LAUNCHSERVER || 'localhost:8080';
 
   // Sync status and clear logs/eventMsg when container ID changes (new container after restart)
   useEffect(() => {
@@ -44,6 +42,12 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
 
   const handleStart = async () => {
     await onStart(key);
+  };
+  const getLogColor = (line: string) => {
+    if (/\bERROR\b/.test(line)) return '#ff4d4d';
+    if (/\bWARN\b/.test(line)) return '#ffd966';
+    if (/\bINFO\b/.test(line)) return '#7CFC00';
+    return '#0f0';
   };
 
   // Connect WebSocket logs when running and logsWsUrl changes
@@ -140,18 +144,26 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
             ref={logBoxRef}
             style={{
               backgroundColor: '#111',
-              color: '#0f0',
               padding: 10,
               borderRadius: 4,
               height: 150,
               overflowY: 'auto',
               marginTop: 4,
               fontSize: 12,
-              whiteSpace: 'pre-wrap',
-              wordWrap: 'break-word',
             }}
           >
-            {logs.join('\n')}
+            {logs.map((line, idx) => (
+              <div
+                key={idx}
+                style={{
+                  color: getLogColor(line),
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {line}
+              </div>
+            ))}
           </pre>
         </div>
       )}
