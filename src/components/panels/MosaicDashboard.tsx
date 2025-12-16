@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, ReactElement } from 'react';
+import React, { useMemo, useState, ReactElement, useContext } from 'react';
 import {
   Mosaic,
   MosaicWindow,
   MosaicNode,
   MosaicPath,
+  MosaicContext,
 } from 'react-mosaic-component';
 import 'react-mosaic-component/react-mosaic-component.css';
+
 import MapView from './MapView';
 import WaypointList from './WaypointList';
 import SystemTelemetryPanel from './SystemTelemetryPanel';
@@ -17,10 +19,18 @@ import GasSensor from './GasSensor';
 import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 
-type MosaicKey = 'mapView' | 'rosMonitor' | 'waypointList' | 'videoControls' | 'gasSensor' | 'orientationDisplay' | 'goalSetter' | 'networkHealthMonitor';
+type MosaicKey =
+  | 'mapView'
+  | 'rosMonitor'
+  | 'waypointList'
+  | 'videoControls'
+  | 'gasSensor'
+  | 'orientationDisplay'
+  | 'goalSetter'
+  | 'networkHealthMonitor';
 
 const MosaicDashboard: React.FC = () => {
-  // TODO: paramaterize layout for custom layout configs
+  // TODO: parameterize layout for custom layout configs
   const [mosaicLayout, setMosaicLayout] = useState<MosaicNode<MosaicKey> | null>({
     direction: 'row',
     first: {
@@ -56,61 +66,194 @@ const MosaicDashboard: React.FC = () => {
     splitPercentage: 60,
   });
 
+  const ALL_TILES = useMemo<MosaicKey[]>(
+    () => [
+      'mapView',
+      'rosMonitor',
+      'networkHealthMonitor',
+      'orientationDisplay',
+      'videoControls',
+      'waypointList',
+      'gasSensor',
+      'goalSetter',
+    ],
+    []
+  );
+
+  // Which window currently has the dropdown open?
+  const [pendingAdd, setPendingAdd] = useState<{
+    pathKey: string;
+    path: MosaicPath;
+    direction: 'row' | 'column'; // row => add right, column => add below
+  } | null>(null);
+
+  const Controls: React.FC<{ id: MosaicKey; path: MosaicPath }> = ({ id, path }) => {
+    const { mosaicActions } = useContext(MosaicContext);
+    const pathKey = JSON.stringify(path);
+    const showDropdown = pendingAdd?.pathKey === pathKey;
+
+    const splitAndAdd = (direction: 'row' | 'column', newTile: MosaicKey) => {
+      const splitNode: MosaicNode<MosaicKey> = {
+        direction,
+        first: id, // keep current tile
+        second: newTile,
+        splitPercentage: 60,
+      };
+
+      mosaicActions.replaceWith(path, splitNode);
+      setPendingAdd(null);
+    };
+
+    return (
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <button
+          className="tile-btn"
+          title="Add tile to the right"
+          onClick={(e) => {
+            e.stopPropagation();
+            setPendingAdd({ pathKey, path, direction: 'row' });
+          }}
+        >
+          ➕ (Right)
+        </button>
+
+        <button
+          className="tile-btn"
+          title="Add tile below"
+          onClick={(e) => {
+            e.stopPropagation();
+            setPendingAdd({ pathKey, path, direction: 'column' });
+          }}
+        >
+          ➕ (Below)
+        </button>
+
+        {showDropdown ? (
+          <select
+            className="tile-select"
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const value = e.target.value as MosaicKey;
+              splitAndAdd(pendingAdd!.direction, value);
+            }}
+            defaultValue=""
+          >
+            <option value="" disabled>
+              Pick tile…
+            </option>
+            {ALL_TILES.filter((t) => t !== id).map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+        ) : null}
+      </div>
+    );
+  };
+
   const renderTile = (id: MosaicKey, path: MosaicPath): ReactElement => {
     switch (id) {
       case 'mapView':
         return (
-          <MosaicWindow<MosaicKey> title="Map View" path={path}>
+          <MosaicWindow<MosaicKey>
+            title="Map View"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
             <div style={{ height: '100%', backgroundColor: '#121212' }}>
-              <MapView offline/>
+              <MapView offline />
             </div>
           </MosaicWindow>
         );
+
       case 'waypointList':
         return (
-          <MosaicWindow<MosaicKey> title="Waypoint List" path={path}>
+          <MosaicWindow<MosaicKey>
+            title="Waypoint List"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
             <WaypointList />
           </MosaicWindow>
         );
+
       case 'videoControls':
         return (
-          <MosaicWindow<MosaicKey> title="Video Stream" path={path}>
+          <MosaicWindow<MosaicKey>
+            title="Video Stream"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
             <VideoControls />
           </MosaicWindow>
         );
+
       case 'rosMonitor':
         return (
-          <MosaicWindow<MosaicKey> title="System Telemetry" path={path}>
+          <MosaicWindow<MosaicKey>
+            title="System Telemetry"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
             <SystemTelemetryPanel />
           </MosaicWindow>
         );
+
       case 'networkHealthMonitor':
         return (
-          <MosaicWindow<MosaicKey> title="Connection Health" path={path}>
+          <MosaicWindow<MosaicKey>
+            title="Connection Health"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
             <NetworkHealthTelemetryPanel />
           </MosaicWindow>
         );
+
       case 'orientationDisplay':
         return (
-          <MosaicWindow<MosaicKey> title="Rover Orientation" path={path}>
+          <MosaicWindow<MosaicKey>
+            title="Rover Orientation"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
             <OrientationDisplayPanel />
           </MosaicWindow>
         );
+
       case 'gasSensor':
-          return (
-            <MosaicWindow<MosaicKey> title="Science" path={path}>
-              <GasSensor/>
-            </MosaicWindow>
-          );
-      
+        return (
+          <MosaicWindow<MosaicKey>
+            title="Science"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
+            <GasSensor />
+          </MosaicWindow>
+        );
+
       case 'goalSetter':
         return (
-          <MosaicWindow<MosaicKey> title="Nav2" path={path}>
+          <MosaicWindow<MosaicKey>
+            title="Nav2"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
             <GoalSetterPanel />
           </MosaicWindow>
         );
+
       default:
-        return <div>Unknown tile</div>;
+        return (
+          <MosaicWindow<MosaicKey>
+            title="Unknown tile"
+            path={path}
+            additionalControls={<Controls id={id} path={path} />}
+          >
+            <div>Unknown tile</div>
+          </MosaicWindow>
+        );
     }
   };
 
@@ -122,24 +265,56 @@ const MosaicDashboard: React.FC = () => {
         onChange={setMosaicLayout}
         blueprintNamespace="bp5"
       />
+
       <style jsx global>{`
         .mosaic {
           background-color: #121212;
         }
+
         .mosaic-window {
           background-color: #1e1e1e;
           color: #f1f1f1;
           border: 1px solid #333;
         }
+
         .mosaic-window-title {
           background-color: #2d2d2d;
           color: #f1f1f1 !important;
           font-size: 1.25rem;
           border-bottom: 1px solid #444;
         }
+
         .mosaic-window-body {
           background-color: #1e1e1e;
           color: #f1f1f1;
+        }
+
+        .tile-btn {
+          background: transparent;
+          border: 1px solid #444;
+          color: #2d2d2d;
+          border-radius: 6px;
+          padding: 2px 6px;
+          cursor: pointer;
+          line-height: 1;
+        }
+
+        .tile-btn:hover {
+          border-color: #666;
+        }
+
+        .tile-select {
+          background: #2d2d2d;
+          color: #f1f1f1;
+          border: 1px solid #444;
+          border-radius: 6px;
+          padding: 2px 6px;
+        }
+        .mosaic-window-toolbar .expand-button {
+          display: none !important;
+        }
+        .mosaic-window-toolbar .bp5-button.bp5-icon-more .control-text {
+          display: none;
         }
       `}</style>
     </div>
