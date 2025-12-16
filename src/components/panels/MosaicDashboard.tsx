@@ -53,12 +53,18 @@ const ALL_TILES: MosaicKey[] = [
   'goalSetter',
 ];
 
+type PendingAdd = {
+  pathKey: string;
+  path: MosaicPath;
+  direction: 'row' | 'column';
+} | null;
+
 // Move Controls component outside to prevent re-creation on every render
 const Controls = memo<{ 
   id: MosaicKey; 
   path: MosaicPath; 
-  pendingAdd: { pathKey: string; path: MosaicPath; direction: 'row' | 'column' } | null;
-  setPendingAdd: (value: { pathKey: string; path: MosaicPath; direction: 'row' | 'column' } | null) => void;
+  pendingAdd: PendingAdd;
+  setPendingAdd: (value: PendingAdd) => void;
 }>(({ id, path, pendingAdd, setPendingAdd }) => {
   const { mosaicActions } = useContext(MosaicContext);
   const pathKey = JSON.stringify(path);
@@ -126,7 +132,7 @@ const Controls = memo<{
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => {
             const value = e.target.value as MosaicKey;
-            // Add null check validation before calling splitAndAdd
+            // Validate pendingAdd state and selected value before proceeding
             if (pendingAdd && value) {
               splitAndAdd(pendingAdd.direction, value);
             }
@@ -187,11 +193,7 @@ const MosaicDashboard: React.FC = () => {
   });
 
   // Which window currently has the dropdown open?
-  const [pendingAdd, setPendingAdd] = useState<{
-    pathKey: string;
-    path: MosaicPath;
-    direction: 'row' | 'column'; // row => add right, column => add below
-  } | null>(null);
+  const [pendingAdd, setPendingAdd] = useState<PendingAdd>(null);
 
   const renderTile = (id: MosaicKey, path: MosaicPath): ReactElement => {
     switch (id) {
