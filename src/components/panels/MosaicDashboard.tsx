@@ -195,9 +195,6 @@ const MosaicDashboard: React.FC = () => {
   // Which window currently has the dropdown open?
   const [pendingAdd, setPendingAdd] = useState<PendingAdd>(null);
 
-  // Memoize setPendingAdd to preserve Controls component memoization benefits
-  const handleSetPendingAdd = useMemo(() => setPendingAdd, []);
-
   const renderTile = (id: MosaicKey, path: MosaicPath): ReactElement => {
     switch (id) {
       case 'mapView':
@@ -205,7 +202,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Map View"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <div style={{ height: '100%', backgroundColor: '#121212' }}>
               <MapView offline />
@@ -218,7 +215,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Waypoint List"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <WaypointList />
           </MosaicWindow>
@@ -229,7 +226,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Video Stream"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <VideoControls />
           </MosaicWindow>
@@ -240,7 +237,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="System Telemetry"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <SystemTelemetryPanel />
           </MosaicWindow>
@@ -251,7 +248,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Connection Health"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <NetworkHealthTelemetryPanel />
           </MosaicWindow>
@@ -262,7 +259,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Rover Orientation"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <OrientationDisplayPanel />
           </MosaicWindow>
@@ -273,7 +270,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Science"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <GasSensor />
           </MosaicWindow>
@@ -284,7 +281,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Nav2"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <GoalSetterPanel />
           </MosaicWindow>
@@ -295,7 +292,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Unknown tile"
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={handleSetPendingAdd} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <div>Unknown tile</div>
           </MosaicWindow>
