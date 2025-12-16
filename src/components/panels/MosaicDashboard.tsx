@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, ReactElement, useContext } from 'react';
+import React, { useMemo, useState, ReactElement, useContext, useRef, useEffect, memo } from 'react';
 import {
   Mosaic,
   MosaicWindow,
@@ -28,6 +28,126 @@ type MosaicKey =
   | 'orientationDisplay'
   | 'goalSetter'
   | 'networkHealthMonitor';
+
+// Human-readable tile names mapping
+const TILE_DISPLAY_NAMES: Record<MosaicKey, string> = {
+  mapView: 'Map View',
+  rosMonitor: 'System Telemetry',
+  waypointList: 'Waypoint List',
+  videoControls: 'Video Stream',
+  gasSensor: 'Science',
+  orientationDisplay: 'Rover Orientation',
+  goalSetter: 'Nav2',
+  networkHealthMonitor: 'Connection Health',
+};
+
+// All available tiles - no need for useMemo as this is a static array
+const ALL_TILES: MosaicKey[] = [
+  'mapView',
+  'rosMonitor',
+  'networkHealthMonitor',
+  'orientationDisplay',
+  'videoControls',
+  'waypointList',
+  'gasSensor',
+  'goalSetter',
+];
+
+// Move Controls component outside to prevent re-creation on every render
+const Controls = memo<{ 
+  id: MosaicKey; 
+  path: MosaicPath; 
+  pendingAdd: { pathKey: string; path: MosaicPath; direction: 'row' | 'column' } | null;
+  setPendingAdd: (value: { pathKey: string; path: MosaicPath; direction: 'row' | 'column' } | null) => void;
+}>(({ id, path, pendingAdd, setPendingAdd }) => {
+  const { mosaicActions } = useContext(MosaicContext);
+  const pathKey = JSON.stringify(path);
+  const showDropdown = pendingAdd?.pathKey === pathKey;
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const splitAndAdd = (direction: 'row' | 'column', newTile: MosaicKey) => {
+    const splitNode: MosaicNode<MosaicKey> = {
+      direction,
+      first: id, // keep current tile
+      second: newTile,
+      splitPercentage: 60,
+    };
+
+    mosaicActions.replaceWith(path, splitNode);
+    setPendingAdd(null);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!showDropdown) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setPendingAdd(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown, setPendingAdd]);
+
+  return (
+    <div ref={dropdownRef} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <button
+        className="tile-btn"
+        title="Add tile to the right"
+        aria-label="Add tile to the right"
+        onClick={(e) => {
+          e.stopPropagation();
+          setPendingAdd({ pathKey, path, direction: 'row' });
+        }}
+      >
+        ➕ (Right)
+      </button>
+
+      <button
+        className="tile-btn"
+        title="Add tile below"
+        aria-label="Add tile below"
+        onClick={(e) => {
+          e.stopPropagation();
+          setPendingAdd({ pathKey, path, direction: 'column' });
+        }}
+      >
+        ➕ (Below)
+      </button>
+
+      {showDropdown ? (
+        <select
+          className="tile-select"
+          aria-label="Select tile to add"
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => {
+            const value = e.target.value as MosaicKey;
+            // Add null check validation before calling splitAndAdd
+            if (pendingAdd && value) {
+              splitAndAdd(pendingAdd.direction, value);
+            }
+          }}
+          defaultValue=""
+        >
+          <option value="" disabled>
+            Pick tile…
+          </option>
+          {ALL_TILES.filter((t) => t !== id).map((t) => (
+            <option key={t} value={t}>
+              {TILE_DISPLAY_NAMES[t]}
+            </option>
+          ))}
+        </select>
+      ) : null}
+    </div>
+  );
+});
+
+Controls.displayName = 'Controls';
 
 const MosaicDashboard: React.FC = () => {
   // TODO: parameterize layout for custom layout configs
@@ -66,91 +186,12 @@ const MosaicDashboard: React.FC = () => {
     splitPercentage: 60,
   });
 
-  const ALL_TILES = useMemo<MosaicKey[]>(
-    () => [
-      'mapView',
-      'rosMonitor',
-      'networkHealthMonitor',
-      'orientationDisplay',
-      'videoControls',
-      'waypointList',
-      'gasSensor',
-      'goalSetter',
-    ],
-    []
-  );
-
   // Which window currently has the dropdown open?
   const [pendingAdd, setPendingAdd] = useState<{
     pathKey: string;
     path: MosaicPath;
     direction: 'row' | 'column'; // row => add right, column => add below
   } | null>(null);
-
-  const Controls: React.FC<{ id: MosaicKey; path: MosaicPath }> = ({ id, path }) => {
-    const { mosaicActions } = useContext(MosaicContext);
-    const pathKey = JSON.stringify(path);
-    const showDropdown = pendingAdd?.pathKey === pathKey;
-
-    const splitAndAdd = (direction: 'row' | 'column', newTile: MosaicKey) => {
-      const splitNode: MosaicNode<MosaicKey> = {
-        direction,
-        first: id, // keep current tile
-        second: newTile,
-        splitPercentage: 60,
-      };
-
-      mosaicActions.replaceWith(path, splitNode);
-      setPendingAdd(null);
-    };
-
-    return (
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-        <button
-          className="tile-btn"
-          title="Add tile to the right"
-          onClick={(e) => {
-            e.stopPropagation();
-            setPendingAdd({ pathKey, path, direction: 'row' });
-          }}
-        >
-          ➕ (Right)
-        </button>
-
-        <button
-          className="tile-btn"
-          title="Add tile below"
-          onClick={(e) => {
-            e.stopPropagation();
-            setPendingAdd({ pathKey, path, direction: 'column' });
-          }}
-        >
-          ➕ (Below)
-        </button>
-
-        {showDropdown ? (
-          <select
-            className="tile-select"
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => {
-              const value = e.target.value as MosaicKey;
-              splitAndAdd(pendingAdd!.direction, value);
-            }}
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Pick tile…
-            </option>
-            {ALL_TILES.filter((t) => t !== id).map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        ) : null}
-      </div>
-    );
-  };
 
   const renderTile = (id: MosaicKey, path: MosaicPath): ReactElement => {
     switch (id) {
@@ -159,7 +200,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Map View"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <div style={{ height: '100%', backgroundColor: '#121212' }}>
               <MapView offline />
@@ -172,7 +213,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Waypoint List"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <WaypointList />
           </MosaicWindow>
@@ -183,7 +224,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Video Stream"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <VideoControls />
           </MosaicWindow>
@@ -194,7 +235,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="System Telemetry"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <SystemTelemetryPanel />
           </MosaicWindow>
@@ -205,7 +246,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Connection Health"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <NetworkHealthTelemetryPanel />
           </MosaicWindow>
@@ -216,7 +257,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Rover Orientation"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <OrientationDisplayPanel />
           </MosaicWindow>
@@ -227,7 +268,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Science"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <GasSensor />
           </MosaicWindow>
@@ -238,7 +279,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Nav2"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <GoalSetterPanel />
           </MosaicWindow>
@@ -249,7 +290,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow<MosaicKey>
             title="Unknown tile"
             path={path}
-            additionalControls={<Controls id={id} path={path} />}
+            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
           >
             <div>Unknown tile</div>
           </MosaicWindow>
@@ -292,7 +333,7 @@ const MosaicDashboard: React.FC = () => {
         .tile-btn {
           background: transparent;
           border: 1px solid #444;
-          color: #2d2d2d;
+          color: #f1f1f1;
           border-radius: 6px;
           padding: 2px 6px;
           cursor: pointer;
