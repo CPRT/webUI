@@ -18,7 +18,7 @@ import GasSensor from './GasSensor';
 import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 
-type MosaicKey =
+type TileType =
   | 'mapView'
   | 'rosMonitor'
   | 'waypointList'
@@ -28,7 +28,9 @@ type MosaicKey =
   | 'goalSetter'
   | 'networkHealthMonitor';
 
-const TILE_DISPLAY_NAMES: Record<MosaicKey, string> = {
+type TileId = `${TileType}:${string}`;
+
+const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   mapView: 'Map View',
   rosMonitor: 'System Telemetry',
   waypointList: 'Waypoint List',
@@ -39,7 +41,7 @@ const TILE_DISPLAY_NAMES: Record<MosaicKey, string> = {
   networkHealthMonitor: 'Connection Health',
 };
 
-const ALL_TILES: MosaicKey[] = [
+const ALL_TILE_TYPES: TileType[] = [
   'mapView',
   'rosMonitor',
   'networkHealthMonitor',
@@ -50,16 +52,26 @@ const ALL_TILES: MosaicKey[] = [
   'goalSetter',
 ];
 
-type PendingAdd = {
-  pathKey: string;
+function makeTileId(type: TileType): TileId {
+  const uid = crypto.randomUUID();
+  return `${type}:${uid}`;
+}
+
+function tileTypeOf(id: TileId): TileType {
+  return id.split(':', 1)[0] as TileType;
+}
+
+type PendingAdd =
+  | {
+      pathKey: string;
+      path: MosaicPath;
+      direction: 'row' | 'column';
+    }
+  | null;
+
+const Controls = memo<{
+  id: TileId;
   path: MosaicPath;
-  direction: 'row' | 'column';
-} | null;
-
-
-const Controls = memo<{ 
-  id: MosaicKey; 
-  path: MosaicPath; 
   pendingAdd: PendingAdd;
   setPendingAdd: (value: PendingAdd) => void;
 }>(({ id, path, pendingAdd, setPendingAdd }) => {
@@ -68,11 +80,14 @@ const Controls = memo<{
   const showDropdown = pendingAdd?.pathKey === pathKey;
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const splitAndAdd = (direction: 'row' | 'column', newTile: MosaicKey) => {
-    const splitNode: MosaicNode<MosaicKey> = {
+  const splitAndAdd = (direction: 'row' | 'column', newType: TileType) => {
+
+    const newId = makeTileId(newType);
+
+    const splitNode: MosaicNode<TileId> = {
       direction,
       first: id,
-      second: newTile,
+      second: newId,
       splitPercentage: 60,
     };
 
@@ -80,7 +95,6 @@ const Controls = memo<{
     setPendingAdd(null);
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     if (!showDropdown) return;
 
@@ -95,6 +109,8 @@ const Controls = memo<{
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showDropdown, setPendingAdd]);
+
+  const currentType = tileTypeOf(id);
 
   return (
     <div ref={dropdownRef} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -128,10 +144,10 @@ const Controls = memo<{
           aria-label="Select tile to add"
           onClick={(e) => e.stopPropagation()}
           onChange={(e) => {
-            const value = e.target.value as MosaicKey;
-            // Validate pendingAdd state and selected value before proceeding
+            const value = e.target.value as TileType;
             if (pendingAdd && value) {
               splitAndAdd(pendingAdd.direction, value);
+              e.target.value = '';
             }
           }}
           defaultValue=""
@@ -139,7 +155,7 @@ const Controls = memo<{
           <option value="" disabled>
             Pick tile…
           </option>
-          {ALL_TILES.filter((t) => t !== id).map((t) => (
+          {ALL_TILE_TYPES.map((t) => (
             <option key={t} value={t}>
               {TILE_DISPLAY_NAMES[t]}
             </option>
@@ -153,34 +169,33 @@ const Controls = memo<{
 Controls.displayName = 'Controls';
 
 const MosaicDashboard: React.FC = () => {
-  // TODO: parameterize layout for custom layout configs
-  const [mosaicLayout, setMosaicLayout] = useState<MosaicNode<MosaicKey> | null>({
+  const [mosaicLayout, setMosaicLayout] = useState<MosaicNode<TileId> | null>({
     direction: 'row',
     first: {
       direction: 'column',
-      first: 'mapView',
+      first: makeTileId('mapView'),
       second: {
         direction: 'row',
         first: {
           direction: 'row',
-          first: 'rosMonitor',
-          second: 'networkHealthMonitor',
+          first: makeTileId('rosMonitor'),
+          second: makeTileId('networkHealthMonitor'),
         },
-        second: 'orientationDisplay',
+        second: makeTileId('orientationDisplay'),
         splitPercentage: 55,
       },
       splitPercentage: 55,
     },
     second: {
       direction: 'column',
-      first: 'videoControls',
+      first: makeTileId('videoControls'),
       second: {
         direction: 'row',
-        first: 'waypointList',
+        first: makeTileId('waypointList'),
         second: {
           direction: 'row',
-          first: 'gasSensor',
-          second: 'goalSetter',
+          first: makeTileId('gasSensor'),
+          second: makeTileId('goalSetter'),
         },
         splitPercentage: 50,
       },
@@ -191,14 +206,17 @@ const MosaicDashboard: React.FC = () => {
 
   const [pendingAdd, setPendingAdd] = useState<PendingAdd>(null);
 
-  const renderTile = (id: MosaicKey, path: MosaicPath): ReactElement => {
-    switch (id) {
+  const renderTile = (id: TileId, path: MosaicPath): ReactElement => {
+    const type = tileTypeOf(id);
+    switch (type) {
       case 'mapView':
         return (
-          <MosaicWindow<MosaicKey>
-            title="Map View"
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
           >
             <div style={{ height: '100%', backgroundColor: '#121212' }}>
               <MapView offline />
@@ -208,10 +226,12 @@ const MosaicDashboard: React.FC = () => {
 
       case 'waypointList':
         return (
-          <MosaicWindow<MosaicKey>
-            title="Waypoint List"
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
           >
             <WaypointList />
           </MosaicWindow>
@@ -219,10 +239,12 @@ const MosaicDashboard: React.FC = () => {
 
       case 'videoControls':
         return (
-          <MosaicWindow<MosaicKey>
-            title="Video Stream"
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
           >
             <VideoControls />
           </MosaicWindow>
@@ -230,10 +252,12 @@ const MosaicDashboard: React.FC = () => {
 
       case 'rosMonitor':
         return (
-          <MosaicWindow<MosaicKey>
-            title="System Telemetry"
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
           >
             <SystemTelemetryPanel />
           </MosaicWindow>
@@ -241,10 +265,12 @@ const MosaicDashboard: React.FC = () => {
 
       case 'networkHealthMonitor':
         return (
-          <MosaicWindow<MosaicKey>
-            title="Connection Health"
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
           >
             <NetworkHealthTelemetryPanel />
           </MosaicWindow>
@@ -252,10 +278,12 @@ const MosaicDashboard: React.FC = () => {
 
       case 'orientationDisplay':
         return (
-          <MosaicWindow<MosaicKey>
-            title="Rover Orientation"
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
           >
             <OrientationDisplayPanel />
           </MosaicWindow>
@@ -263,10 +291,12 @@ const MosaicDashboard: React.FC = () => {
 
       case 'gasSensor':
         return (
-          <MosaicWindow<MosaicKey>
-            title="Science"
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
           >
             <GasSensor />
           </MosaicWindow>
@@ -274,34 +304,28 @@ const MosaicDashboard: React.FC = () => {
 
       case 'goalSetter':
         return (
-          <MosaicWindow<MosaicKey>
-            title="Nav2"
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
             path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
           >
             <GoalSetterPanel />
           </MosaicWindow>
         );
 
       default:
-        return (
-          <MosaicWindow<MosaicKey>
-            title="Unknown tile"
-            path={path}
-            additionalControls={<Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />}
-          >
-            <div>Unknown tile</div>
-          </MosaicWindow>
-        );
+        return <div>Unknown tile</div>;
     }
   };
 
   return (
     <div style={{ height: '100%', width: '100%' }}>
-      <Mosaic<MosaicKey>
-        renderTile={renderTile}
-        initialValue={mosaicLayout}
+      <Mosaic<TileId>
+        value={mosaicLayout}
         onChange={setMosaicLayout}
+        renderTile={renderTile}
         blueprintNamespace="bp5"
       />
       <style jsx global>{`
