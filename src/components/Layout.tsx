@@ -50,7 +50,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         }
         .mainContent {
           flex: 1;
-          padding: 1rem;
+          padding: 0;
           overflow-y: auto;
         }
       `}</style>
