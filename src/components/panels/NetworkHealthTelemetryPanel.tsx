@@ -1,74 +1,83 @@
 import React, { useEffect, useState } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  LabelList,
-} from "recharts";
+
+const dotStyle = (up: boolean): React.CSSProperties => ({
+  width: 12,
+  height: 12,
+  borderRadius: "50%",
+  display: "inline-block",
+  backgroundColor: up ? "#22c55e" : "#ef4444",
+});
+
+const hosts = ["192.168.0.2", "172.19.228.1"]; // Add more hosts here as needed (must match hosts in route.ts)
+const hostnames: { [key: string]: string } = {"192.168.0.2": "Base"}; // set nicknames here
+
 const NetworkHealthTelemetryPanel: React.FC = () => {
   const [stats, setStats] = useState({
-    uplinkThroughput: 0,
-    downlinkThroughput: 0,
-    uplinkCapacity: 100,
-    downlinkCapacity: 100,
+    uplinkRttMs: 0,
+    downlinkRttMs: 0,
+    uplinkUp: false,
+    downlinkUp: false,
   });
+
+  const [pings, setPings] = useState<{ [key: string]: number }>({});
+  const [baseStationError, setBaseStationError] = useState<string | null>(null);
+
+  console.log('pings state:', pings);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    // Polling function to fetch data from the API route
+
     const poll = async () => {
       try {
-        const response = await fetch("/dashboard/api", {
+        const response = await fetch("/dashboard/api", { 
           method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          }
         });
         if (!response.ok) {
-          console.error("Failed to fetch status from API route");
+          console.error(`API returned ${response.status}: ${response.statusText}`);
           return;
         }
+
         const data = await response.json();
 
-        const uplinkCapacity = data.uplinkCapacity ?? 0;
-        const downlinkCapacity = data.downlinkCapacity ?? 0;
-        const uplinkThroughput = data.uplinkThroughput?? 0;
-        const downlinkThroughput = data.downlinkThroughput ?? 0;
-
         setStats({
-          uplinkThroughput,
-          downlinkThroughput,
-          uplinkCapacity,
-          downlinkCapacity,
+          uplinkRttMs: data.uplinkRttMs ?? 0,
+          downlinkRttMs: data.downlinkRttMs ?? 0,
+          uplinkUp: Boolean(data.uplinkUp),
+          downlinkUp: Boolean(data.downlinkUp),
         });
+        // Set ping results for each host
+        if (data.pings) {
+          setPings(data.pings);
+        }
+        // Track base station errors
+        if (data.baseStationError) {
+          setBaseStationError(data.baseStationError);
+        } else {
+          setBaseStationError(null);
+        }
       } catch (error) {
         console.error("Polling error:", error);
       }
     };
 
-    // Initial poll + start interval
     poll();
     interval = setInterval(poll, 1000);
 
-    // Cleanup on unmount
-    return () => {
-      if (interval) clearInterval(interval);
-    };
+    return () => clearInterval(interval);
   }, []);
 
-  // rounded throughput kbps / 10 to get 2 decimal places, then divided by 100 to finish conversion to Mbps
-  const data = [
-    {
-      name: "Uplink",
-      Throughput: Math.round(stats.uplinkThroughput / 10) / 100,
-      Capacity: stats.uplinkCapacity / 1000,
-    },
-    {
-      name: "Downlink",
-      Throughput: Math.round(stats.downlinkThroughput / 10) / 100,
-      Capacity: stats.downlinkCapacity / 1000,
-    },
+  const rows = [
+    // Add ping results for each host
+    ...hosts.map((host) => ({
+
+      name: hostnames[host] ?? host,
+      rttMs: pings[host] ?? 0,
+      up: pings[host] !== -1 && pings[host] !== undefined,
+
+    })),
   ];
 
   return (
@@ -83,42 +92,36 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
         flexDirection: "column",
       }}
     >
+      <div style={{ marginTop: "2rem" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #333" }}>
+                Name
+              </th>
+              <th style={{ textAlign: "right", padding: "8px", borderBottom: "1px solid #333" }}>
+                RTT (ms)
+              </th>
+              <th style={{ textAlign: "center", padding: "8px", borderBottom: "1px solid #333" }}>
+                Status
+              </th>
+            </tr>
+          </thead>
 
-      <div style={{ marginTop: "2rem", height: "250px" }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <XAxis
-              type="number"
-              domain={[0, (dataMax:number) => Math.floor(dataMax * 1.2)]}
-              stroke="#ccc"
-              tick={{ fill: "#ccc" }}
-            />
-            <YAxis
-              type="category"
-              dataKey="name"
-              stroke="#ccc"
-              tick={{ fill: "#ccc" }}
-            />
-            <Tooltip
-              contentStyle={{ backgroundColor: "#333", border: "none", color: "#fff" }}
-              labelStyle={{ color: "#ddd" }}
-            />
-            <Bar dataKey="Capacity" fill="#4b5563" barSize={24} />
-            <Bar dataKey="Throughput" fill="#3b82f6" barSize={16}>
-              <LabelList dataKey="Throughput" position="right" fill="#f1f1f1" />
-              {data.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={
-                    entry.Throughput / entry.Capacity > 0.85
-                      ? "#ef4444"
-                      : "#3b82f6"
-                  }
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.name}>
+                <td style={{ padding: "8px", borderBottom: "1px solid #222" }}>{r.name}</td>
+                <td style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #222" }}>
+                  {r.rttMs === -1 ? "Offline" : r.rttMs}
+                </td>
+                <td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #222" }}>
+                  <span style={dotStyle(r.up)} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
