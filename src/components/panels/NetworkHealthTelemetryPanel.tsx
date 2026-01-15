@@ -1,4 +1,14 @@
 import React, { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LabelList,
+} from "recharts";
 
 const dotStyle = (up: boolean): React.CSSProperties => ({
   width: 12,
@@ -10,10 +20,10 @@ const dotStyle = (up: boolean): React.CSSProperties => ({
 
 const NetworkHealthTelemetryPanel: React.FC = () => {
   const [stats, setStats] = useState({
-    uplinkRttMs: 0,
-    downlinkRttMs: 0,
-    uplinkUp: false,
-    downlinkUp: false,
+    uplinkThroughput: 0,
+    downlinkThroughput: 0,
+    uplinkCapacity: 100,
+    downlinkCapacity: 100,
   });
 
   const [pings, setPings] = useState<{ [key: string]: number }>({});
@@ -39,11 +49,15 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
 
         const data = await response.json();
 
+        const uplinkCapacity = data.uplinkCapacity ?? 0;
+        const downlinkCapacity = data.downlinkCapacity ?? 0;
+        const uplinkThroughput = data.uplinkThroughput?? 0;
+        const downlinkThroughput = data.downlinkThroughput ?? 0;
         setStats({
-          uplinkRttMs: data.uplinkRttMs ?? 0,
-          downlinkRttMs: data.downlinkRttMs ?? 0,
-          uplinkUp: Boolean(data.uplinkUp),
-          downlinkUp: Boolean(data.downlinkUp),
+          uplinkThroughput,
+          downlinkThroughput,
+          uplinkCapacity,
+          downlinkCapacity,
         });
         // Set ping results for each host
         if (data.pings) {
@@ -77,19 +91,32 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
     })),
   ];
 
+  const data = [
+    {
+      name: "Uplink",
+      Throughput: Math.round(stats.uplinkThroughput / 10) / 100,
+      Capacity: stats.uplinkCapacity / 1000,
+    },
+    {
+      name: "Downlink",
+      Throughput: Math.round(stats.downlinkThroughput / 10) / 100,
+      Capacity: stats.downlinkCapacity / 1000,
+    },
+  ];
+
   return (
     <div
       style={{
         background: "#1e1e1e",
         color: "#f1f1f1",
-        padding: "1rem",
+        padding: 0,
         height: "100%",
         overflowY: "auto",
         display: "flex",
         flexDirection: "column",
       }}
     >
-      <div style={{ marginTop: "2rem" }}>
+      <div style={{ marginTop: 0 }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
@@ -120,7 +147,56 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
           </tbody>
         </table>
       </div>
+    <div
+      style={{
+        background: "#1e1e1e",
+        color: "#f1f1f1",
+        padding: "1rem",
+        height: "100%",
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+
+      <div style={{height: "125px" }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <XAxis
+              type="number"
+              domain={[0, (dataMax:number) => Math.floor(dataMax * 1.2)]}
+              stroke="#ccc"
+              tick={{ fill: "#ccc" }}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              stroke="#ccc"
+              tick={{ fill: "#ccc" }}
+            />
+            <Tooltip
+              contentStyle={{ backgroundColor: "#333", border: "none", color: "#fff" }}
+              labelStyle={{ color: "#ddd" }}
+            />
+            <Bar dataKey="Capacity" fill="#4b5563" barSize={24} />
+            <Bar dataKey="Throughput" fill="#3b82f6" barSize={16}>
+              <LabelList dataKey="Throughput" position="right" fill="#f1f1f1" />
+              {data.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={
+                    entry.Throughput / entry.Capacity > 0.85
+                      ? "#ef4444"
+                      : "#3b82f6"
+                  }
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
+    </div> 
   );
 };
 
