@@ -8,9 +8,6 @@ const dotStyle = (up: boolean): React.CSSProperties => ({
   backgroundColor: up ? "#22c55e" : "#ef4444",
 });
 
-const hosts = ["192.168.0.2", "172.19.228.1"]; // Add more hosts here as needed (must match hosts in route.ts)
-const hostnames: { [key: string]: string } = {"192.168.0.2": "Base"}; // set nicknames here
-
 const NetworkHealthTelemetryPanel: React.FC = () => {
   const [stats, setStats] = useState({
     uplinkRttMs: 0,
@@ -71,9 +68,9 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
 
   const rows = [
     // Add ping results for each host
-    ...hosts.map((host) => ({
+    ...Object.keys(pings).map((host) => ({
 
-      name: hostnames[host] ?? host,
+      name: host,
       rttMs: pings[host] ?? 0,
       up: pings[host] !== -1 && pings[host] !== undefined,
 

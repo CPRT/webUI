@@ -2,13 +2,13 @@ const USERNAME = 'ubnt';
 const PASSWORD = 'samitherover';
 const baseStationIP = '192.168.0.2';
 
-const hosts = ['192.168.0.2', '172.19.228.1']; // Add more hosts here as needed (must match hosts in NetworkHealthTelemetryPanel.tsx)
+const hosts = ['192.168.0.2', '172.19.228.1']; // Add more hosts here as needed
 
 const ping = require('ping');
 
 // Ping configuration
 const pingConfig = {
-  timeout: 5,
+  timeout: 1, // timeout set to 1 second
 };
 
 // Function to ping multiple hosts and return RTT times in dictionary format
