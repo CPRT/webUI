@@ -103,7 +103,7 @@ export async function GET(request: Request) {
       baseStationError, // Include error info in response
     });
   } catch (error: any) {
-    console.error('Failed to ping hosts:', error); // put toast notifications here LATER
+    console.error('Failed to ping hosts:', error);
     return Response.json(
       { error: 'Failed to ping hosts: ' + error.message },
       { status: 500 }
