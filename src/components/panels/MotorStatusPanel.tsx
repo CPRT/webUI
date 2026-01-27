@@ -95,7 +95,6 @@ const MotorStatusPanel: React.FC = () => {
         .motor-panel {
           background: #1e1e1e;
           color: #f1f1f1;
-          border-radius: 8px;
           height: 100%;
           display: flex;
           flex-direction: column;
@@ -117,11 +116,10 @@ const MotorStatusPanel: React.FC = () => {
         .motor-table th {
           text-align: left;
           font-weight: 600;
-          padding: 0.5rem;
+
         }
 
         .motor-table td {
-          padding: 0.5rem;
           border-bottom: 1px solid #333;
         }
 
