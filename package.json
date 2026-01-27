@@ -27,6 +27,7 @@
     "recharts": "^2.15.1",
     "roslib": "^1.4.1",
     "three": "^0.173.0",
+    "uuid": "^13.0.0",
     "webrtc-adapter": "^9.0.1"
   },
   "devDependencies": {

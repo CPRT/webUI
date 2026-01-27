@@ -18,6 +18,7 @@ import GasSensor from './GasSensor';
 import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
+import { v4 as uuidv4 } from 'uuid';
 
 type TileType =
   | 'mapView'
@@ -57,7 +58,7 @@ const ALL_TILE_TYPES: TileType[] = [
 ];
 
 function makeTileId(type: TileType): TileId {
-  const uid = crypto.randomUUID();
+  const uid = uuidv4();
   return `${type}:${uid}`;
 }
 
