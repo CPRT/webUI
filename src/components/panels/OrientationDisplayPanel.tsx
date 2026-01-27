@@ -4,29 +4,10 @@ import * as THREE from 'three';
 import ROSLIB from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
-type MotorStatus = {
-  velocity: number;
-  temperature: number;
-  output_current: number;
-  bus_voltage: number;
-};
-
 const OrientationDisplayPanel: React.FC = () => {
   const { ros } = useROS();
   const containerRef = useRef<HTMLDivElement>(null);
   const cubeRef = useRef<THREE.Mesh | null>(null);
-
-  const [motorStats, setMotorStats] = useState<{
-    fl: MotorStatus | null;
-    fr: MotorStatus | null;
-    rl: MotorStatus | null;
-    rr: MotorStatus | null;
-  }>({
-    fl: null,
-    fr: null,
-    rl: null,
-    rr: null,
-  });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -121,95 +102,10 @@ const OrientationDisplayPanel: React.FC = () => {
     return () => imuTopic.unsubscribe(handleIMU);
   }, [ros]);
 
-  useEffect(() => {
-    if (!ros) return;
-
-    const motors = {
-      fl: '/frontLeft/status',
-      fr: '/frontRight/status',
-      rl: '/backLeft/status',
-      rr: '/backRight/status',
-    };
-
-    const subscriptions = Object.entries(motors).map(([key, topicName]) => {
-      const topic = new ROSLIB.Topic({
-        ros,
-        name: topicName,
-        messageType: 'ros_phoenix/msg/MotorStatus',
-        throttle_rate: 100,
-      });
-
-      const handler = (msg: any) => {
-        setMotorStats(prev => ({
-          ...prev,
-          [key]: {
-            velocity: msg.velocity,
-            temperature: msg.temperature,
-            output_current: msg.output_current,
-            bus_voltage: msg.bus_voltage,
-          },
-        }));
-      };
-
-      topic.subscribe(handler);
-      return () => topic.unsubscribe(handler);
-    });
-
-    return () => subscriptions.forEach(unsub => unsub());
-  }, [ros]);
-
-  const renderBar = (value: number, color: string, clamp: number) => {
-    const percentage = Math.min(Math.max(value / clamp, 0), 1) * 100;
-    return (
-      <div className="bar-wrapper" style={{
-        width: '50px',
-        height: '0.5rem',
-        backgroundColor: '#ccc',
-        borderRadius: '4px',
-        overflow: 'hidden',
-        margin: '0.2rem 5px 0 0'
-      }}>
-        <div className="bar-fill" style={{
-          width: `${percentage}%`, 
-          backgroundColor: color,
-          height: '100%',
-          transition: 'width 0.25s ease'
-          }} />
-      </div>
-    );
-  };
-
-  const renderMotorInfo = (label: string, data: MotorStatus | null) => {
-    if (!data) return <div>{label}: waiting for data...</div>;
-    return (
-      <div>
-        <strong>{label}</strong><br />
-        <div style={{display: 'flex'}} >{data.velocity < 0 ? renderBar(Math.abs(data.velocity), '#f00', 20) : renderBar(data.velocity, '#0f0', 20)} {data.velocity.toFixed(2)} m/s </div>
-        <div style={{display: 'flex'}} >{renderBar(data.output_current, '#ff0', 6)} {data.output_current.toFixed(2)} A </div>
-        Temp: {data.temperature.toFixed(1)} °C<br />
-      </div>
-    );
-  };
-
-  const getBusVoltage = () => {
-    const voltages = Object.values(motorStats)
-      .filter((stat): stat is MotorStatus => stat !== null)
-      .map(stat => stat.bus_voltage);
-  
-    if (voltages.length === 0) return null;
-  
-    const avg = voltages.reduce((sum, v) => sum + v, 0) / voltages.length;
-    return avg.toFixed(2);
-  };
   
   return (
     <div className="orientation-panel">
       <div className="viewport" ref={containerRef}>
-      <div className="bus-voltage">{getBusVoltage() ? `Bus Voltage: ${getBusVoltage()} V` : 'Waiting for voltage...'}</div>
-        <div className="motor-stats top-left">{renderMotorInfo('Front Left', motorStats.fl)}</div>
-        <div className="motor-stats top-right">{renderMotorInfo('Front Right', motorStats.fr)}</div>
-        <div className="motor-stats bottom-left">{renderMotorInfo('Rear Left', motorStats.rl)}</div>
-        <div className="motor-stats bottom-right">{renderMotorInfo('Rear Right', motorStats.rr)}</div>
       </div>
 
       <style jsx>{`
@@ -241,31 +137,7 @@ const OrientationDisplayPanel: React.FC = () => {
           max-width: 100%;
           max-height: 100%;
         }
-        .bus-voltage {
-          position: absolute;
-          top: 0.5rem;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #1e1e1e;
-          padding: 0.3rem 0.6rem;
-          border-radius: 0.5rem;
-          font-size: 0.8rem;
-          color: #fff;
         }
-        .motor-stats {
-          position: absolute;
-          background: #1e1e1e;
-          padding: 0.5rem;
-          display: grid;
-          font-size: 0.8rem;
-          border-radius: 0.5rem;
-          color: #fff;
-          line-height: 1.3;
-        }
-        .top-left { top: 1rem; left: 1rem; }
-        .top-right { top: 1rem; right: 1rem; text-align: right; }
-        .bottom-left { bottom: 1rem; left: 1rem; }
-        .bottom-right { bottom: 1rem; right: 1rem; text-align: right; }
       `}</style>
     </div>
   );
