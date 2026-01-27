@@ -1,6 +1,6 @@
 'use client';
-import React, { useEffect, useRef, useState } from 'react';
-import * as THREE from 'three';
+
+import React, { useEffect, useState } from 'react';
 import ROSLIB from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
@@ -10,38 +10,36 @@ type MotorStatus = {
   output_current: number;
 };
 
+const MOTORS = {
+  fl: { label: 'FLeft', topic: '/frontLeft/status' },
+  fr: { label: 'FRight', topic: '/frontRight/status' },
+  rl: { label: 'BLeft', topic: '/backLeft/status' },
+  rr: { label: 'BRight', topic: '/backRight/status' },
+} as const;
+
+type MotorKey = keyof typeof MOTORS;
+
 const MotorStatusPanel: React.FC = () => {
   const { ros } = useROS();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const cubeRef = useRef<THREE.Mesh | null>(null);
 
-  const [motorStats, setMotorStats] = useState<{
-    fl: MotorStatus | null;
-    fr: MotorStatus | null;
-    rl: MotorStatus | null;
-    rr: MotorStatus | null;
-  }>({
+  const [motorStats, setMotorStats] = useState<
+    Record<MotorKey, MotorStatus | null>
+  >({
     fl: null,
     fr: null,
     rl: null,
     rr: null,
   });
 
-
   useEffect(() => {
     if (!ros) return;
 
-    const motors = {
-      fl: '/frontLeft/status',
-      fr: '/frontRight/status',
-      rl: '/backLeft/status',
-      rr: '/backRight/status',
-    };
-
-    const subscriptions = Object.entries(motors).map(([key, topicName]) => {
-      const topic = new ROSLIB.Topic({
+    const unsubscribers = (
+      Object.entries(MOTORS) as [MotorKey, typeof MOTORS[MotorKey]][]
+    ).map(([key, { topic }]) => {
+      const rosTopic = new ROSLIB.Topic({
         ros,
-        name: topicName,
+        name: topic,
         messageType: 'ros_phoenix/msg/MotorStatus',
         throttle_rate: 100,
       });
@@ -57,15 +55,12 @@ const MotorStatusPanel: React.FC = () => {
         }));
       };
 
-      topic.subscribe(handler);
-      return () => topic.unsubscribe(handler);
+      rosTopic.subscribe(handler);
+      return () => rosTopic.unsubscribe(handler);
     });
 
-    return () => subscriptions.forEach(unsub => unsub());
+    return () => unsubscribers.forEach(unsub => unsub());
   }, [ros]);
-
-
-
 
   return (
     <div className="motor-panel">
@@ -79,30 +74,20 @@ const MotorStatusPanel: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>FLeft</td>
-            <td>{motorStats.fl?.velocity.toFixed(2) || '-'}</td>
-            <td>{motorStats.fl?.temperature.toFixed(2) || '-'}°C</td>
-            <td>{motorStats.fl?.output_current.toFixed(2) || '-'}A</td>
-          </tr>
-          <tr>
-            <td>FRight</td>
-            <td>{motorStats.fr?.velocity.toFixed(2) || '-'}</td>
-            <td>{motorStats.fr?.temperature.toFixed(2) || '-'}°C</td>
-            <td>{motorStats.fr?.output_current.toFixed(2) || '-'}A</td>
-          </tr>
-          <tr>
-            <td>BLeft</td>
-            <td>{motorStats.rl?.velocity.toFixed(2) || '-'}</td>
-            <td>{motorStats.rl?.temperature.toFixed(2) || '-'}°C</td>
-            <td>{motorStats.rl?.output_current.toFixed(2) || '-'}A</td>
-          </tr>
-          <tr>
-            <td>BRight</td>
-            <td>{motorStats.rr?.velocity.toFixed(2) || '-'}</td>
-            <td>{motorStats.rr?.temperature.toFixed(2) || '-'}°C</td>
-            <td>{motorStats.rr?.output_current.toFixed(2) || '-'}A</td>
-          </tr>
+          {(Object.entries(MOTORS) as [MotorKey, typeof MOTORS[MotorKey]][]).map(
+            ([key, { label }]) => {
+              const stat = motorStats[key];
+
+              return (
+                <tr key={key}>
+                  <td>{label}</td>
+                  <td>{stat ? stat.velocity.toFixed(2) : '-'}</td>
+                  <td>{stat ? `${stat.temperature.toFixed(2)}°C` : '-'}</td>
+                  <td>{stat ? `${stat.output_current.toFixed(2)}A` : '-'}</td>
+                </tr>
+              );
+            }
+          )}
         </tbody>
       </table>
 
@@ -117,29 +102,29 @@ const MotorStatusPanel: React.FC = () => {
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
           overflow: auto;
         }
-        h3 {
-          margin: 0 0 0.25rem 0;
-          font-size: 1.25rem;
-          text-align: center;
-          border-bottom: 1px solid #444;
-        }
+
         .motor-table {
           width: 100%;
           border-collapse: collapse;
           font-size: 0.95rem;
         }
+
         .motor-table thead {
           background: #2d2d2d;
           border-bottom: 2px solid #444;
         }
+
         .motor-table th {
           text-align: left;
           font-weight: 600;
-          color: #f1f1f1;
+          padding: 0.5rem;
         }
+
         .motor-table td {
+          padding: 0.5rem;
           border-bottom: 1px solid #333;
         }
+
         .motor-table tbody tr:hover {
           background-color: #262626;
         }
