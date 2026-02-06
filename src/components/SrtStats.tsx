@@ -5,16 +5,17 @@ import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
 
 type SrtStatsMsg = {
-  rtt: number; // seconds
+  rtt: number; // ms
   bandwidth: number; // bits/sec
   packets_sent: number;
   packets_lost: number;
   packets_retransmitted: number;
+  packet_dropped_total: number;
 };
 
-const formatNumber = (v: number | null | undefined) => {
-  if (v === null || v === undefined) return "—";
-  return v.toLocaleString();
+const formatNumber = (ms: number | null | undefined) => {
+  if (ms === null || ms === undefined) return "—";
+  return ms.toLocaleString();
 };
 
 const formatSecondsMs = (sec: number | null | undefined) => {
@@ -65,6 +66,7 @@ const SrtStats: React.FC = () => {
         packets_sent: msg.packets_sent,
         packets_lost: msg.packets_lost,
         packets_retransmitted: msg.packets_retransmitted,
+        packet_dropped_total: msg.packet_dropped_total || 0,
       };
       setStats(newData);
       setLastUpdateMs(Date.now());
@@ -152,6 +154,11 @@ const SrtStats: React.FC = () => {
               {formatNumber(stats?.packets_lost)}
               {derived.lossPct !== null ? ` (${derived.lossPct.toFixed(2)}%)` : ""}
             </span>
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
+            <span style={{ color: "#aaa" }}>Drops</span>
+            <span style={{ color: "#f1f1f1" }}>{formatNumber(stats?.packet_dropped_total)}</span>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
