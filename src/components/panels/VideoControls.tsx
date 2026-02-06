@@ -1,5 +1,4 @@
 'use client';
-
 import React from "react";
 import VideoCustomPresetForm from "../VideoCustomPresetForm";
 import ROSLIB from "roslib";
@@ -14,13 +13,30 @@ interface VideoOutResponse {
 const VideoControls: React.FC = () => {
   const { ros, connectionStatus: rosStatus } = useROS();
 
-  const newPreset = (presetName: string, camRequest: VideoOutRequest) => {
-    console.log(`Setting new video preset: ${presetName}`, camRequest);
+  const triggerIFrame = () => {
+    if (!ros || rosStatus !== "connected") return;
+    const topic = new ROSLIB.Topic({
+      ros,
+      name: "/srt_node/trigger_iframe",
+      messageType: "std_msgs/msg/Empty",
+    });
+    topic.publish(new ROSLIB.Message({}));
+    console.log("Manual I-Frame triggered");
+  };
 
-    if (!ros || rosStatus !== "connected") {
-      console.error("Not connected to ROS");
-      return;
-    }
+  const setBitrate = (bitrate: number) => {
+    if (!ros || rosStatus !== "connected") return;
+    const topic = new ROSLIB.Topic({
+      ros,
+      name: "/srt_node/set_bitrate",
+      messageType: "std_msgs/msg/Int32",
+    });
+    topic.publish(new ROSLIB.Message({ data: bitrate }));
+    console.log(`Setting bitrate to: ${bitrate} bps`);
+  };
+
+  const newPreset = (presetName: string, camRequest: VideoOutRequest) => {
+    if (!ros || rosStatus !== "connected") return;
 
     const startVideoSrv = new ROSLIB.Service({
       ros,
@@ -31,16 +47,11 @@ const VideoControls: React.FC = () => {
     startVideoSrv.callService(
       new ROSLIB.ServiceRequest(camRequest),
       (response: VideoOutResponse) => {
-        console[response.success ? "log" : "error"](
-          response.success
-            ? `Video stream set to new preset ${presetName}`
-            : `Failed to change video preset to ${presetName}`,
-        );
+        console.log(response.success ? "Success" : "Failed");
       },
     );
   };
 
-  // callbacks intentionally blank for now
   const onRestart = () => {};
   const onSnapshot = () => {};
   const onPanoramic = () => {};
@@ -54,6 +65,7 @@ const VideoControls: React.FC = () => {
     color: enabled ? "#f1f1f1" : "#777",
     padding: "0.45rem 0.6rem",
     fontSize: "0.85rem",
+    cursor: enabled ? "pointer" : "not-allowed",
   });
 
   return (
@@ -66,7 +78,6 @@ const VideoControls: React.FC = () => {
       }}
     >
       <div style={{ display: "flex", gap: "1rem", height: "100%" }}>
-        {/* Left half: controls */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
@@ -81,57 +92,56 @@ const VideoControls: React.FC = () => {
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              <button
-                onClick={onRestart}
-                disabled={!connected}
-                style={buttonStyle(connected)}
-              >
-                Restart
-              </button>
-
-              <button
-                onClick={onSnapshot}
-                disabled={!connected}
-                style={buttonStyle(connected)}
-              >
-                Snapshot
-              </button>
-              <button
-                onClick={onPanoramic}
-                disabled={!connected}
-                style={buttonStyle(connected)}
-              >
-                Panoramic
-              </button>
+              <button onClick={onRestart} disabled={!connected} style={buttonStyle(connected)}>Restart</button>
+              <button onClick={onSnapshot} disabled={!connected} style={buttonStyle(connected)}>Snapshot</button>
+              <button onClick={onPanoramic} disabled={!connected} style={buttonStyle(connected)}>Panoramic</button>
             </div>
 
-            <div
-              style={{
-                marginTop: "0.75rem",
-                paddingTop: "0.75rem",
-                borderTop: "1px solid #444",
-                color: "#aaa",
-                fontSize: "0.8rem",
-                lineHeight: 1.4,
-              }}
-            >
-            <VideoPresetsPanel
-              onPresetSelect={(name, preset) => newPreset(name, preset)}
-            />
+            <div style={{ 
+              marginTop: "0.75rem", 
+              paddingTop: "0.75rem", 
+              borderTop: "1px solid #444",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.6rem"
+            }}>
+              <div style={{ color: "#aaa", fontSize: "0.8rem" }}>SRT Stream Control</div>
+              
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center" }}>
+                <button
+                  onClick={triggerIFrame}
+                  disabled={!connected}
+                  style={buttonStyle(connected)}
+                  title="Force Key Unit"
+                >
+                  Force I-Frame
+                </button>
+
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.4rem", 
+                  marginLeft: "0.5rem",
+                  padding: "0.2rem 0.5rem",
+                  backgroundColor: "#222",
+                  borderRadius: "4px",
+                  border: "1px dashed #555"
+                }}>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>BITRATE:</span>
+                  <button onClick={() => setBitrate(1000000)} disabled={!connected} style={buttonStyle(connected)}>1M</button>
+                  <button onClick={() => setBitrate(4000000)} disabled={!connected} style={buttonStyle(connected)}>4M</button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid #444" }}>
+              <VideoPresetsPanel onPresetSelect={(name, preset) => newPreset(name, preset)} />
             </div>
           </div>
           <SrtStats />
         </div>
 
-        {/* Right half: form */}
-        <div
-          style={{
-            height: "100%",
-            overflow: "auto",
-            flex: 1, 
-            minWidth: 0
-          }}
-        >
+        <div style={{ height: "100%", overflow: "auto", flex: 1, minWidth: 0 }}>
           <VideoCustomPresetForm onSubmit={(preset) => newPreset("Custom", preset)} />
         </div>
       </div>
