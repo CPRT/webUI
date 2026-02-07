@@ -95,12 +95,12 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
     {
       name: "Uplink",
       Throughput: Math.round(stats.uplinkThroughput / 10) / 100,
-      Capacity: stats.uplinkCapacity / 1000,
+      Capacity: stats.uplinkCapacity,
     },
     {
       name: "Downlink",
       Throughput: Math.round(stats.downlinkThroughput / 10) / 100,
-      Capacity: stats.downlinkCapacity / 1000,
+      Capacity: stats.downlinkCapacity,
     },
   ];
 
