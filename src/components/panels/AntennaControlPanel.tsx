@@ -44,7 +44,7 @@ const AntennaControlPanel: React.FC = () => {
     return 0.0; // neither held OR both held
   };
 
-  // Start/stop the 300ms publish loop
+  // Start/stop the 100ms publish loop
   useEffect(() => {
     if (!ros || !topicRef.current) return;
 
@@ -54,14 +54,14 @@ const AntennaControlPanel: React.FC = () => {
       intervalRef.current = null;
     }
 
-    // Publish immediately, then every 300ms
+    // Publish immediately, then every 100ms
     const publishNow = () => {
       const value = computeValue();
       topicRef.current?.publish(new ROSLIB.Message({ data: value }));
     };
 
     publishNow();
-    intervalRef.current = window.setInterval(publishNow, 300);
+    intervalRef.current = window.setInterval(publishNow, 100);
 
     return () => {
       if (intervalRef.current) {
