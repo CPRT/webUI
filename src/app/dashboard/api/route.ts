@@ -2,7 +2,7 @@ const USERNAME = 'ubnt';
 const PASSWORD = 'samitherover';
 const baseStationIP = '192.168.0.2';
 
-const hosts = ['192.168.0.2', '172.19.228.1']; // Add more hosts here as needed
+const hosts = ['192.168.0.2', '192.168.0.3', '192.168.0.55']; // Add more hosts here as needed
 
 const ping = require('ping');
 
