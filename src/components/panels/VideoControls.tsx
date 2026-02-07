@@ -52,9 +52,50 @@ const VideoControls: React.FC = () => {
     );
   };
 
-  const onRestart = () => {};
+  const onRestart = () => {
+    if (!ros || rosStatus !== "connected") return;
+    const topic = new ROSLIB.Topic({
+      ros,
+      name: "/all_video/restart_pipeline",
+      messageType: "std_msgs/msg/Empty",
+    });
+    topic.publish(new ROSLIB.Message({}));
+    console.log("Stream restart triggered");
+  };
   const onSnapshot = () => {};
   const onPanoramic = () => {};
+
+  const setLatency = (latency: number) => {
+    if (!ros || rosStatus !== "connected") return;
+    const param = new ROSLIB.Param({
+      ros,
+      name: "/srt_node/latency",
+    });
+    param.set(latency, (result: boolean) => {
+      if (result) {
+        console.log(`Target latency set to ${latency} ms`);
+      } else {
+        console.error("Failed to set target latency");
+      }
+    });
+    console.log(`Setting target latency to: ${latency} ms`);
+  };
+
+  const setFramerate = (framerate: number) => {
+    if (!ros || rosStatus !== "connected") return;
+    const param = new ROSLIB.Param({
+      ros,
+      name: "/srt_node/target_framerate",
+    });
+    param.set(framerate, (result: boolean) => {
+      if (result) {
+        console.log(`Framerate set to ${framerate} fps`);
+      } else {
+        console.error("Failed to set framerate");
+      }
+    });
+    console.log(`Setting framerate to: ${framerate} fps`);
+  };
 
   const connected = !!ros && rosStatus === "connected";
 
@@ -121,15 +162,44 @@ const VideoControls: React.FC = () => {
                   display: "flex", 
                   alignItems: "center", 
                   gap: "0.4rem", 
-                  marginLeft: "0.5rem",
                   padding: "0.2rem 0.5rem",
                   backgroundColor: "#222",
                   borderRadius: "4px",
-                  border: "1px dashed #555"
+                  border: "1px solid #555"
                 }}>
                   <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>BITRATE:</span>
+                  <button onClick={() => setBitrate(500000)} disabled={!connected} style={buttonStyle(connected)}>500K</button>
                   <button onClick={() => setBitrate(1000000)} disabled={!connected} style={buttonStyle(connected)}>1M</button>
-                  <button onClick={() => setBitrate(4000000)} disabled={!connected} style={buttonStyle(connected)}>4M</button>
+                  <button onClick={() => setBitrate(2000000)} disabled={!connected} style={buttonStyle(connected)}>2M</button>
+                  <button onClick={() => setBitrate(5000000)} disabled={!connected} style={buttonStyle(connected)}>5M</button>
+                </div>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.4rem", 
+                  padding: "0.2rem 0.5rem",
+                  backgroundColor: "#222",
+                  borderRadius: "4px",
+                  border: "1px solid #555"
+                }}>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>LATENCY:</span>
+                  <button onClick={() => setLatency(50)} disabled={!connected} style={buttonStyle(connected)}>LOW</button>
+                  <button onClick={() => setLatency(100)} disabled={!connected} style={buttonStyle(connected)}>MED</button>
+                  <button onClick={() => setLatency(200)} disabled={!connected} style={buttonStyle(connected)}>RELIABLE</button>
+                </div>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.4rem", 
+                  padding: "0.2rem 0.5rem",
+                  backgroundColor: "#222",
+                  borderRadius: "4px",
+                  border: "1px solid #555"
+                }}>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>Framerate:</span>
+                  <button onClick={() => setFramerate(50)} disabled={!connected} style={buttonStyle(connected)}>LOW</button>
+                  <button onClick={() => setFramerate(100)} disabled={!connected} style={buttonStyle(connected)}>MED</button>
+                  <button onClick={() => setFramerate(200)} disabled={!connected} style={buttonStyle(connected)}>RELIABLE</button>
                 </div>
               </div>
             </div>
