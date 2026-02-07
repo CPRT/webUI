@@ -67,31 +67,53 @@ const VideoControls: React.FC = () => {
 
   const setLatency = (latency: number) => {
     if (!ros || rosStatus !== "connected") return;
-    const param = new ROSLIB.Param({
+
+    const setParamsClient = new ROSLIB.Service({
       ros,
-      name: "/srt_node/latency",
+      name: "/srt_node/set_parameters",
+      serviceType: "rcl_interfaces/srv/SetParameters",
     });
-    param.set(latency, (result: boolean) => {
-      if (result) {
-        console.log(`Target latency set to ${latency} ms`);
-      } else {
-        console.error("Failed to set target latency");
-      }
+
+    const request = new ROSLIB.ServiceRequest({
+      parameters: [
+        {
+          name: "latency",
+          value: {
+            type: 2,
+            integer_value: latency,
+          },
+        },
+      ],
     });
-    console.log(`Setting target latency to: ${latency} ms`);
+
+    setParamsClient.callService(request, (result) => {
+      console.log("Set parameters response:", result);
+    });
   };
 
   const setFramerate = (framerate: number) => {
     if (!ros || rosStatus !== "connected") return;
-    const param = new ROSLIB.Param({
+    const setParamsClient = new ROSLIB.Service({
       ros,
-      name: "/srt_node/target_framerate",
+      name: "/srt_node/set_parameters",
+      serviceType: "rcl_interfaces/srv/SetParameters",
     });
-    param.set(framerate, (result: boolean) => {
-      if (result) {
-        console.log(`Framerate set to ${framerate} fps`);
+    const request = new ROSLIB.ServiceRequest({
+      parameters: [
+        {
+          name: "target_framerate",
+          value: {
+            type: 2,
+            integer_value: framerate,
+          },
+        },
+      ],
+    });
+    setParamsClient.callService(request, (result) => {
+      if (result.results && result.results[0].successful) {
+        console.log(`Framerate successfully set to ${framerate} fps`);
       } else {
-        console.error("Failed to set framerate");
+        console.error("Failed to set framerate", result);
       }
     });
     console.log(`Setting framerate to: ${framerate} fps`);
@@ -167,7 +189,7 @@ const VideoControls: React.FC = () => {
                   borderRadius: "4px",
                   border: "1px solid #555"
                 }}>
-                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>BITRATE:</span>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>Bitrate:</span>
                   <button onClick={() => setBitrate(500000)} disabled={!connected} style={buttonStyle(connected)}>500K</button>
                   <button onClick={() => setBitrate(1000000)} disabled={!connected} style={buttonStyle(connected)}>1M</button>
                   <button onClick={() => setBitrate(2000000)} disabled={!connected} style={buttonStyle(connected)}>2M</button>
@@ -182,7 +204,7 @@ const VideoControls: React.FC = () => {
                   borderRadius: "4px",
                   border: "1px solid #555"
                 }}>
-                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>LATENCY:</span>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>Latency:</span>
                   <button onClick={() => setLatency(50)} disabled={!connected} style={buttonStyle(connected)}>LOW</button>
                   <button onClick={() => setLatency(100)} disabled={!connected} style={buttonStyle(connected)}>MED</button>
                   <button onClick={() => setLatency(200)} disabled={!connected} style={buttonStyle(connected)}>RELIABLE</button>
@@ -197,9 +219,10 @@ const VideoControls: React.FC = () => {
                   border: "1px solid #555"
                 }}>
                   <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>Framerate:</span>
-                  <button onClick={() => setFramerate(50)} disabled={!connected} style={buttonStyle(connected)}>LOW</button>
-                  <button onClick={() => setFramerate(100)} disabled={!connected} style={buttonStyle(connected)}>MED</button>
-                  <button onClick={() => setFramerate(200)} disabled={!connected} style={buttonStyle(connected)}>RELIABLE</button>
+                  <button onClick={() => setFramerate(1)} disabled={!connected} style={buttonStyle(connected)}>1</button>
+                  <button onClick={() => setFramerate(5)} disabled={!connected} style={buttonStyle(connected)}>5</button>
+                  <button onClick={() => setFramerate(15)} disabled={!connected} style={buttonStyle(connected)}>15</button>
+                  <button onClick={() => setFramerate(30)} disabled={!connected} style={buttonStyle(connected)}>30</button>
                 </div>
               </div>
             </div>
