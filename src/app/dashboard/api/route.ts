@@ -1,8 +1,15 @@
+import fetch from 'node-fetch';
+import fetchCookie from 'fetch-cookie';
+import { CookieJar } from 'tough-cookie';
+
+const jar = new CookieJar();
+const fetchWithCookies = fetchCookie(fetch, jar);
+
 const USERNAME = 'ubnt';
 const PASSWORD = 'samitherover';
 const baseStationIP = '192.168.0.2';
 
-const hosts = ['192.168.0.2', '172.19.228.1']; // Add more hosts here as needed
+const hosts = ['192.168.0.2', '192.168.0.3', '192.168.0.55']; // Add more hosts here as needed
 
 const ping = require('ping');
 
@@ -34,36 +41,37 @@ async function pingHosts(hosts: string[]): Promise<{ [key: string]: number }> {
 
 // Authenticates with the base station
 async function authenticate() {
-  const response = await fetch(`http://${baseStationIP}/api/auth`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      username: USERNAME,
-      password: PASSWORD,
-    }),
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error('Authentication failed');
-  }
-  const setCookie = response.headers.getSetCookie()[0]
+  const formData = new URLSearchParams();
+  formData.append('uri', '/index.cgi');
+  formData.append('username', USERNAME);
+  formData.append('password', PASSWORD);
 
-  return {cookie: setCookie}
+  const response = await fetchWithCookies(`http://${baseStationIP}/login.cgi`, {
+    method: 'POST',
+    body: formData,
+    redirect: 'manual',
+  });
+
+  if (response.status !== 302) {
+    throw new Error(`Authentication failed: ${response.status}`);
+  }
 }
 
 // Fetches status JSON from the base station
-async function fetchStatus(cookie: string) {
-  const response = await fetch(`http://${baseStationIP}/status.cgi`, {
+async function fetchStatus() {
+  const response = await fetchWithCookies(`http://${baseStationIP}/status.cgi`, {
     method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Cookie': cookie
-    }
+    redirect: 'manual',
   });
+
+
+  if (response.status === 302) {
+    await authenticate();
+    throw new Error('Not authenticated (redirected to login)');
+  }
+
   if (!response.ok) {
-    throw new Error('Failed to fetch status, error code: ' + response.status);
+    throw new Error(`Failed to fetch status: ${response.status}`);
   }
   return response.json();
 }
@@ -78,11 +86,9 @@ export async function GET(request: Request) {
 
   // Try to fetch base station data, but don't fail if it's unavailable
   try {
-    const authStatus = await authenticate();
-    const status = await fetchStatus(authStatus.cookie);
-
-    uplinkCapacity = status.wireless?.polling?.ucap ?? 0;
-    downlinkCapacity = status.wireless?.polling?.dcap ?? 0;
+    const status : any = await fetchStatus();
+    uplinkCapacity = status.wireless?.txrate ?? 0;
+    downlinkCapacity = status.wireless?.rxrate ?? 0;
     uplinkThroughput = status.wireless?.throughput?.tx ?? 0;
     downlinkThroughput = status.wireless?.throughput?.rx ?? 0;
   } catch (error: any) {
