@@ -18,13 +18,6 @@ const formatNumber = (ms: number | null | undefined) => {
   return ms.toLocaleString();
 };
 
-const formatSecondsMs = (sec: number | null | undefined) => {
-  if (sec === null || sec === undefined) return "—";
-  const ms = sec * 1000.0;
-  if (!Number.isFinite(ms)) return "—";
-  return ms >= 10 ? `${ms.toFixed(0)} ms` : `${ms.toFixed(1)} ms`;
-};
-
 const formatBandwidth = (bps: number | null | undefined) => {
   if (bps === null || bps === undefined) return "—";
   if (!Number.isFinite(bps)) return "—";
@@ -55,7 +48,7 @@ const SrtStats: React.FC = () => {
 
     const topic = new ROSLIB.Topic({
       ros,
-      name: "/srt_node/stats",
+      name: "/srt_node/srt_stats",
       messageType: "interfaces/msg/SrtStats",
     });
 
@@ -135,7 +128,7 @@ const SrtStats: React.FC = () => {
         >
           <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
             <span style={{ color: "#aaa" }}>RTT</span>
-            <span style={{ color: "#f1f1f1" }}>{formatSecondsMs(stats?.rtt)}</span>
+            <span style={{ color: "#f1f1f1" }}>{formatNumber(stats?.rtt)}</span>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>

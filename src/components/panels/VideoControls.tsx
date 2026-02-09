@@ -52,9 +52,72 @@ const VideoControls: React.FC = () => {
     );
   };
 
-  const onRestart = () => {};
+  const onRestart = () => {
+    if (!ros || rosStatus !== "connected") return;
+    const topic = new ROSLIB.Topic({
+      ros,
+      name: "/all_video/restart_pipeline",
+      messageType: "std_msgs/msg/Empty",
+    });
+    topic.publish(new ROSLIB.Message({}));
+    console.log("Stream restart triggered");
+  };
   const onSnapshot = () => {};
   const onPanoramic = () => {};
+
+  const setLatency = (latency: number) => {
+    if (!ros || rosStatus !== "connected") return;
+
+    const setParamsClient = new ROSLIB.Service({
+      ros,
+      name: "/srt_node/set_parameters",
+      serviceType: "rcl_interfaces/srv/SetParameters",
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      parameters: [
+        {
+          name: "latency",
+          value: {
+            type: 2,
+            integer_value: latency,
+          },
+        },
+      ],
+    });
+
+    setParamsClient.callService(request, (result) => {
+      console.log("Set parameters response:", result);
+    });
+  };
+
+  const setFramerate = (framerate: number) => {
+    if (!ros || rosStatus !== "connected") return;
+    const setParamsClient = new ROSLIB.Service({
+      ros,
+      name: "/srt_node/set_parameters",
+      serviceType: "rcl_interfaces/srv/SetParameters",
+    });
+    const request = new ROSLIB.ServiceRequest({
+      parameters: [
+        {
+          name: "target_framerate",
+          value: {
+            type: 2,
+            integer_value: framerate,
+          },
+        },
+      ],
+    });
+    setParamsClient.callService(request, (result) => {
+      if (result.results && result.results[0].successful) {
+        console.log(`Framerate successfully set to ${framerate} fps`);
+      } else {
+        console.error("Failed to set framerate", result);
+      }
+    });
+    console.log(`Setting framerate to: ${framerate} fps`);
+  };
 
   const connected = !!ros && rosStatus === "connected";
 
@@ -121,15 +184,45 @@ const VideoControls: React.FC = () => {
                   display: "flex", 
                   alignItems: "center", 
                   gap: "0.4rem", 
-                  marginLeft: "0.5rem",
                   padding: "0.2rem 0.5rem",
                   backgroundColor: "#222",
                   borderRadius: "4px",
-                  border: "1px dashed #555"
+                  border: "1px solid #555"
                 }}>
-                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>BITRATE:</span>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>Bitrate:</span>
+                  <button onClick={() => setBitrate(500000)} disabled={!connected} style={buttonStyle(connected)}>500K</button>
                   <button onClick={() => setBitrate(1000000)} disabled={!connected} style={buttonStyle(connected)}>1M</button>
-                  <button onClick={() => setBitrate(4000000)} disabled={!connected} style={buttonStyle(connected)}>4M</button>
+                  <button onClick={() => setBitrate(2000000)} disabled={!connected} style={buttonStyle(connected)}>2M</button>
+                  <button onClick={() => setBitrate(5000000)} disabled={!connected} style={buttonStyle(connected)}>5M</button>
+                </div>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.4rem", 
+                  padding: "0.2rem 0.5rem",
+                  backgroundColor: "#222",
+                  borderRadius: "4px",
+                  border: "1px solid #555"
+                }}>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>Latency:</span>
+                  <button onClick={() => setLatency(50)} disabled={!connected} style={buttonStyle(connected)}>LOW</button>
+                  <button onClick={() => setLatency(100)} disabled={!connected} style={buttonStyle(connected)}>MED</button>
+                  <button onClick={() => setLatency(200)} disabled={!connected} style={buttonStyle(connected)}>RELIABLE</button>
+                </div>
+                <div style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  gap: "0.4rem", 
+                  padding: "0.2rem 0.5rem",
+                  backgroundColor: "#222",
+                  borderRadius: "4px",
+                  border: "1px solid #555"
+                }}>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>Framerate:</span>
+                  <button onClick={() => setFramerate(1)} disabled={!connected} style={buttonStyle(connected)}>1</button>
+                  <button onClick={() => setFramerate(5)} disabled={!connected} style={buttonStyle(connected)}>5</button>
+                  <button onClick={() => setFramerate(15)} disabled={!connected} style={buttonStyle(connected)}>15</button>
+                  <button onClick={() => setFramerate(30)} disabled={!connected} style={buttonStyle(connected)}>30</button>
                 </div>
               </div>
             </div>
