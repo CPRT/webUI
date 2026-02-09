@@ -19,6 +19,7 @@ import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
 import { v4 as uuidv4 } from 'uuid';
+import AntennaControlPanel from './AntennaControlPanel';
 
 type TileType =
   | 'mapView'
@@ -29,7 +30,8 @@ type TileType =
   | 'orientationDisplay'
   | 'goalSetter'
   | 'networkHealthMonitor'
-  | 'MotorStatusPanel';
+  | 'MotorStatusPanel'
+  | 'antennaControlPanel';
 
 type TileId = `${TileType}:${string}`;
 
@@ -43,6 +45,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   goalSetter: 'Nav2',
   networkHealthMonitor: 'Connection Health',
   MotorStatusPanel: 'motor',
+  antennaControlPanel: 'Antenna Control',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -55,6 +58,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'gasSensor',
   'goalSetter',
   'MotorStatusPanel',
+  'antennaControlPanel',
 ];
 
 function makeTileId(type: TileType): TileId {
@@ -329,6 +333,18 @@ const MosaicDashboard: React.FC = () => {
             }
           >
             <MotorStatusPanel />
+          </MosaicWindow>
+        );
+      case 'antennaControlPanel':
+        return (
+          <MosaicWindow<TileId>
+            title={TILE_DISPLAY_NAMES[type]}
+            path={path}
+            additionalControls={
+              <Controls id={id} path={path} pendingAdd={pendingAdd} setPendingAdd={setPendingAdd} />
+            }
+          >
+            <AntennaControlPanel />
           </MosaicWindow>
         );
 
