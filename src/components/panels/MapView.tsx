@@ -31,7 +31,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
 
   return (
     <MapContainer
-      center={[51.471531, -112.705753]} 
+      center={[45.385172, -75.698283]} 
       zoom={15}
       maxZoom={22}
       style={{ height: '100%', width: '100%' }}

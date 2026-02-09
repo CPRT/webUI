@@ -12,13 +12,6 @@ interface Breadcrumb {
   timestamp: number;
 }
 
-const breadcrumbIcon = L.icon({
-  iconUrl: '../../public/marker-icon.png',
-  iconSize: [10, 10],
-  iconAnchor: [5, 5],
-  popupAnchor: [0, -5],
-});
-
 const BreadcrumbTrail: React.FC = () => {
   const { ros, connectionStatus } = useROS();
   const { addWaypoint } = useWaypoints();
@@ -26,7 +19,6 @@ const BreadcrumbTrail: React.FC = () => {
   const [paused, setPaused] = useState<boolean>(false);
   const [lastFix, setLastFix] = useState<Breadcrumb | null>(null);
 
-  // i hate react
   useEffect(() => {
     if (!ros) return;
 
@@ -104,15 +96,6 @@ const BreadcrumbTrail: React.FC = () => {
           color="yellow"
         />
       )}
-      {breadcrumbs.map((breadcrumb, index) => (
-        <Marker key={index} position={breadcrumb.coordinate} icon={breadcrumbIcon}>
-          <Popup>
-            <div style={{ fontSize: '0.85rem' }}>
-              Recorded at: {new Date(breadcrumb.timestamp).toLocaleTimeString()}
-            </div>
-          </Popup>
-        </Marker>
-      ))}
 
       <div
         style={{
