@@ -17,7 +17,7 @@ const VideoControls: React.FC = () => {
     if (!ros || rosStatus !== "connected") return;
     const topic = new ROSLIB.Topic({
       ros,
-      name: "/srt_node/trigger_iframe",
+      name: "/rtp_node/trigger_iframe",
       messageType: "std_msgs/msg/Empty",
     });
     topic.publish(new ROSLIB.Message({}));
@@ -28,7 +28,7 @@ const VideoControls: React.FC = () => {
     if (!ros || rosStatus !== "connected") return;
     const topic = new ROSLIB.Topic({
       ros,
-      name: "/srt_node/set_bitrate",
+      name: "/rtp_node/set_bitrate",
       messageType: "std_msgs/msg/Int32",
     });
     topic.publish(new ROSLIB.Message({ data: bitrate }));
@@ -70,7 +70,7 @@ const VideoControls: React.FC = () => {
 
     const setParamsClient = new ROSLIB.Service({
       ros,
-      name: "/srt_node/set_parameters",
+      name: "/rtp_node/set_parameters",
       serviceType: "rcl_interfaces/srv/SetParameters",
     });
 
@@ -95,7 +95,7 @@ const VideoControls: React.FC = () => {
     if (!ros || rosStatus !== "connected") return;
     const setParamsClient = new ROSLIB.Service({
       ros,
-      name: "/srt_node/set_parameters",
+      name: "/rtp_node/set_parameters",
       serviceType: "rcl_interfaces/srv/SetParameters",
     });
     const request = new ROSLIB.ServiceRequest({
