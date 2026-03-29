@@ -4,7 +4,7 @@ import VideoCustomPresetForm from "../VideoCustomPresetForm";
 import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
 import VideoPresetsPanel from "../VideoPresetsPanel";
-import SrtStats from "../SrtStats";
+import RtpStats from "../RtpStats";
 import type { VideoSource, VideoOutRequest } from "../WebRTCClientPage";
 
 interface VideoOutResponse {
@@ -65,7 +65,7 @@ const VideoControls: React.FC = () => {
   const onSnapshot = () => {};
   const onPanoramic = () => {};
 
-  const setLatency = (latency: number) => {
+  const setFec = (fecPercent: number) => {
     if (!ros || rosStatus !== "connected") return;
 
     const setParamsClient = new ROSLIB.Service({
@@ -77,10 +77,10 @@ const VideoControls: React.FC = () => {
     const request = new ROSLIB.ServiceRequest({
       parameters: [
         {
-          name: "latency",
+          name: "fec_percent",
           value: {
             type: 2,
-            integer_value: latency,
+            integer_value: fecPercent,
           },
         },
       ],
@@ -204,10 +204,10 @@ const VideoControls: React.FC = () => {
                   borderRadius: "4px",
                   border: "1px solid #555"
                 }}>
-                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>Latency:</span>
-                  <button onClick={() => setLatency(50)} disabled={!connected} style={buttonStyle(connected)}>LOW</button>
-                  <button onClick={() => setLatency(100)} disabled={!connected} style={buttonStyle(connected)}>MED</button>
-                  <button onClick={() => setLatency(200)} disabled={!connected} style={buttonStyle(connected)}>RELIABLE</button>
+                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>FEC:</span>
+                  <button onClick={() => setFec(1)} disabled={!connected} style={buttonStyle(connected)}>LOW</button>
+                  <button onClick={() => setFec(10)} disabled={!connected} style={buttonStyle(connected)}>MED</button>
+                  <button onClick={() => setFec(20)} disabled={!connected} style={buttonStyle(connected)}>RELIABLE</button>
                 </div>
                 <div style={{ 
                   display: "flex", 
@@ -231,7 +231,7 @@ const VideoControls: React.FC = () => {
               <VideoPresetsPanel onPresetSelect={(name, preset) => newPreset(name, preset)} />
             </div>
           </div>
-          <SrtStats />
+          <RtpStats />
         </div>
 
         <div style={{ height: "100%", overflow: "auto", flex: 1, minWidth: 0 }}>
