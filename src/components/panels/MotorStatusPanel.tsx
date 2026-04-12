@@ -11,10 +11,14 @@ type MotorStatus = {
 };
 
 const MOTORS = {
-  fl: { label: 'FLeft', topic: '/frontLeft/status' },
-  fr: { label: 'FRight', topic: '/frontRight/status' },
-  rl: { label: 'BLeft', topic: '/backLeft/status' },
-  rr: { label: 'BRight', topic: '/backRight/status' },
+  fl_d: { label: 'FLeft_Drive', topic: '/Left_front_wheel_joint/status' },
+  fr_d: { label: 'FRight_Drive', topic: '/Right_front_wheel_joint/status' },
+  rl_d: { label: 'BLeft_Drive', topic: '/Left_back_wheel_joint/status' },
+  rr_d: { label: 'BRight_Drive', topic: '/Right_back_wheel_joint/status' },
+  fl_s: { label: 'FLeft_Steer', topic: '/Left_front_wheel_arm_joint/status' },
+  fr_s: { label: 'FRight_Steer', topic: '/Right_front_wheel_arm_joint/status' },
+  rl_s: { label: 'BLeft_Steer', topic: '/Left_back_wheel_arm_joint/status' },
+  rr_s: { label: 'BRight_Steer', topic: '/Right_back_wheel_arm_joint/status' },
 } as const;
 
 type MotorKey = keyof typeof MOTORS;
@@ -25,10 +29,14 @@ const MotorStatusPanel: React.FC = () => {
   const [motorStats, setMotorStats] = useState<
     Record<MotorKey, MotorStatus | null>
   >({
-    fl: null,
-    fr: null,
-    rl: null,
-    rr: null,
+    fl_d: null,
+    fr_d: null,
+    rl_d: null,
+    rr_d: null,
+    fl_s: null,
+    fr_s: null,
+    rl_s: null,
+    rr_s: null,
   });
 
   useEffect(() => {
