@@ -21,7 +21,7 @@ const CameraSourceDropdown: React.FC<CameraSourceDropdownProps> = ({ onChange })
     }
     const service = new ROSLIB.Service({
       ros: ros!,
-      name: "/get_cameras",
+      name: "/input_node/get_cameras",
       serviceType: "interfaces/srv/GetCameras", // adjust service type if it's differently named
     });
 
