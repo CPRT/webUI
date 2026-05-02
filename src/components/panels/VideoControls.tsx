@@ -62,33 +62,53 @@ const VideoControls: React.FC = () => {
     topic.publish(new ROSLIB.Message({}));
     console.log("Stream restart triggered");
   };
-  const onSnapshot = () => {};
-  const onPanoramic = () => {};
-
-  const setFec = (fecPercent: number) => {
+  const callVideoCaptureService = (serviceName: string, filename: string = "") => {
     if (!ros || rosStatus !== "connected") return;
 
-    const setParamsClient = new ROSLIB.Service({
+    const client = new ROSLIB.Service({
       ros,
-      name: "/rtp_node/set_parameters",
-      serviceType: "rcl_interfaces/srv/SetParameters",
+      name: serviceName,
+      serviceType: "interfaces/srv/VideoCapture",
     });
 
     const request = new ROSLIB.ServiceRequest({
-      parameters: [
-        {
-          name: "fec_percent",
-          value: {
-            type: 2,
-            integer_value: fecPercent,
-          },
-        },
-      ],
+      filename,
     });
 
-    setParamsClient.callService(request, (result) => {
-      console.log("Set parameters response:", result);
+    client.callService(request, (response: any) => {
+      if (!response.success) {
+        console.error(`Service ${serviceName} failed`);
+        return;
+      }
+
+      const imageData = response.image?.data;
+
+      if (!imageData) {
+        console.error("No image data returned");
+        return;
+      }
+
+      const bytes =
+        typeof imageData === "string"
+          ? Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0))
+          : new Uint8Array(imageData);
+
+      const blob = new Blob([bytes], { type: "image/jpeg" });
+      const url = URL.createObjectURL(blob);
+
+      const win = window.open();
+      if (win) {
+        win.document.write(`<img src="${url}" style="max-width:100%">`);
+      }
+
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
     });
+  };
+  const onSnapshot = () => {
+    callVideoCaptureService("/capture_frame");
+  };
+  const onPanoramic = () => {
+    callVideoCaptureService("/capture_panoramic");
   };
 
   const setFramerate = (framerate: number) => {
@@ -194,20 +214,6 @@ const VideoControls: React.FC = () => {
                   <button onClick={() => setBitrate(1000000)} disabled={!connected} style={buttonStyle(connected)}>1M</button>
                   <button onClick={() => setBitrate(2000000)} disabled={!connected} style={buttonStyle(connected)}>2M</button>
                   <button onClick={() => setBitrate(5000000)} disabled={!connected} style={buttonStyle(connected)}>5M</button>
-                </div>
-                <div style={{ 
-                  display: "flex", 
-                  alignItems: "center", 
-                  gap: "0.4rem", 
-                  padding: "0.2rem 0.5rem",
-                  backgroundColor: "#222",
-                  borderRadius: "4px",
-                  border: "1px solid #555"
-                }}>
-                  <span style={{ fontSize: "0.7rem", color: "#888", fontWeight: "bold" }}>FEC:</span>
-                  <button onClick={() => setFec(1)} disabled={!connected} style={buttonStyle(connected)}>LOW</button>
-                  <button onClick={() => setFec(10)} disabled={!connected} style={buttonStyle(connected)}>MED</button>
-                  <button onClick={() => setFec(20)} disabled={!connected} style={buttonStyle(connected)}>RELIABLE</button>
                 </div>
                 <div style={{ 
                   display: "flex", 

@@ -10,8 +10,6 @@ type RtpStatsMsg = {
   num_late: number;
   num_duplicates: number;
   avg_jitter: number;
-  recovered: number;
-  unrecovered: number;
 };
 
 const formatNumber = (ms: number | null | undefined) => {
@@ -45,8 +43,6 @@ const RtpStats: React.FC = () => {
         num_late: msg.num_late,
         num_duplicates: msg.num_duplicates,
         avg_jitter: msg.avg_jitter / 1000000, // convert ns to ms
-        recovered: msg.recovered,
-        unrecovered: msg.unrecovered,
       };
       setStats(newData);
       setLastUpdateMs(Date.now());
@@ -115,16 +111,6 @@ const RtpStats: React.FC = () => {
           <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
             <span style={{ color: "#aaa" }}>Jitter</span>
             <span style={{ color: "#f1f1f1" }}>{formatNumber(stats?.avg_jitter)}</span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
-            <span style={{ color: "#aaa" }}>FEC recovered</span>
-            <span style={{ color: "#f1f1f1" }}>{formatNumber(stats?.recovered)}</span>
-          </div>
-
-          <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
-            <span style={{ color: "#aaa" }}>FEC unrecovered</span>
-            <span style={{ color: "#f1f1f1" }}>{formatNumber(stats?.unrecovered)}</span>
           </div>
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
