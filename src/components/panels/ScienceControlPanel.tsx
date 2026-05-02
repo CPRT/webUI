@@ -1,5 +1,6 @@
 'use client';
-import React, { useState } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useROS } from '@/ros/ROSContext';
 import ROSLIB from 'roslib';
 
@@ -215,6 +216,10 @@ const ScienceControlPanel: React.FC = () => {
           margin-top: 0.4rem;
         }
 
+        :global(.servo-buttons) {
+          grid-template-columns: 1fr 1fr;
+        }
+
         :global(button) {
           padding: 0.4rem;
           border: none;
@@ -252,6 +257,26 @@ const ScienceControlPanel: React.FC = () => {
           color: #777;
           cursor: not-allowed;
         }
+
+        :global(.countdown) {
+          font-size: 0.8rem;
+          color: #00ffcc;
+          font-weight: 600;
+        }
+
+        :global(.progress-bg) {
+          width: 100%;
+          height: 6px;
+          background: #333;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        :global(.progress-fill) {
+          height: 100%;
+          background: #00ffcc;
+          transition: width 0.1s linear;
+        }
       `}</style>
     </div>
   );
@@ -267,15 +292,50 @@ const DCMotor: React.FC<DCMotorProps> = ({
 }) => {
   const [time, setTime] = useState<number>(motor.defaultTime);
   const [duty, setDuty] = useState<number>(motor.defaultDuty);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [startTime, setStartTime] = useState<number>(motor.defaultTime);
 
   const clamp = (val: number, min: number, max: number) =>
     Math.min(Math.max(val, min), max);
+
+  useEffect(() => {
+    if (remaining === null) return;
+
+    if (remaining <= 0) {
+      setRemaining(null);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setRemaining((prev) => {
+        if (prev === null) return null;
+
+        const next = prev - 0.1;
+        return next <= 0 ? null : next;
+      });
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, [remaining]);
 
   const handleGo = () => {
     const safeTime = clamp(time, 0, 999);
     const safeDuty = clamp(duty, 0, 100);
     sendCommand(motor.id, safeDuty, safeTime);
+
+    setStartTime(safeTime);
+    setRemaining(safeTime);
   };
+
+  const handleStop = () => {
+    sendCommand(motor.id, 0, 0);
+    setRemaining(null);
+  };
+
+  const progressPercent =
+    remaining !== null && startTime > 0
+      ? Math.max(0, Math.min(100, (remaining / startTime) * 100))
+      : 0;
 
   return (
     <div className="motor">
@@ -306,16 +366,25 @@ const DCMotor: React.FC<DCMotorProps> = ({
         />
       </label>
 
+      {remaining !== null && (
+        <>
+          <div className="countdown">{remaining.toFixed(1)}s remaining</div>
+
+          <div className="progress-bg">
+            <div
+              className="progress-fill"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+        </>
+      )}
+
       <div className="buttons">
-        <button disabled={disabled} onClick={handleGo}>
+        <button disabled={disabled || remaining !== null} onClick={handleGo}>
           Go
         </button>
 
-        <button
-          className="stop"
-          disabled={disabled}
-          onClick={() => sendCommand(motor.id, 0, 0)}
-        >
+        <button className="stop" disabled={disabled} onClick={handleStop}>
           Stop
         </button>
 
@@ -325,6 +394,7 @@ const DCMotor: React.FC<DCMotorProps> = ({
           onClick={() => {
             setTime(motor.defaultTime);
             setDuty(motor.defaultDuty);
+            setRemaining(null);
           }}
         >
           Reset
@@ -334,32 +404,48 @@ const DCMotor: React.FC<DCMotorProps> = ({
   );
 };
 
-// --------------------
-// Servo Component
-// --------------------
 const ServoMotor: React.FC<ServoMotorProps> = ({
   motor,
   sendCommand,
   disabled,
 }) => {
-  const [position, setPosition] = useState<number>(
-    motor.defaultPosition
-  );
+  const [position, setPosition] = useState<number>(motor.defaultPosition);
+  const [remaining, setRemaining] = useState<number | null>(null);
 
   const clamp = (val: number, min: number, max: number) =>
     Math.min(Math.max(val, min), max);
+
+  useEffect(() => {
+    if (remaining === null) return;
+
+    if (remaining <= 0) {
+      setRemaining(null);
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setRemaining((prev) => {
+        if (prev === null) return null;
+
+        const next = prev - 0.1;
+        return next <= 0 ? null : next;
+      });
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, [remaining]);
 
   const handleGo = () => {
     const safePos = clamp(position, 0, motor.maxDegrees);
 
     const pulseUs =
       motor.minPulseUs +
-      (safePos / motor.maxDegrees) *
-        (motor.maxPulseUs - motor.minPulseUs);
+      (safePos / motor.maxDegrees) * (motor.maxPulseUs - motor.minPulseUs);
 
     const dutyPercent = (pulseUs / motor.periodUs) * 100;
 
     sendCommand(motor.id, dutyPercent, 0.5);
+    setRemaining(0.5);
   };
 
   return (
@@ -379,15 +465,31 @@ const ServoMotor: React.FC<ServoMotorProps> = ({
         />
       </label>
 
-      <div className="buttons">
-        <button disabled={disabled} onClick={handleGo}>
+      {remaining !== null && (
+        <>
+          <div className="countdown">{remaining.toFixed(1)}s remaining</div>
+
+          <div className="progress-bg">
+            <div
+              className="progress-fill"
+              style={{ width: `${(remaining / 0.5) * 100}%` }}
+            />
+          </div>
+        </>
+      )}
+
+      <div className="buttons servo-buttons">
+        <button disabled={disabled || remaining !== null} onClick={handleGo}>
           Go
         </button>
 
         <button
           className="reset"
           disabled={disabled}
-          onClick={() => setPosition(motor.defaultPosition)}
+          onClick={() => {
+            setPosition(motor.defaultPosition);
+            setRemaining(null);
+          }}
         >
           Reset
         </button>
