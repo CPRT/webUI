@@ -20,7 +20,7 @@ import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
-import { CO2Graph } from './ScienceGraphPanels';
+import { CO2Graph, MethaneGraph } from './ScienceGraphPanels';
 
 type TileType =
   | 'mapView'
@@ -34,7 +34,8 @@ type TileType =
   | 'MotorStatusPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
-  | 'co2Graph';
+  | 'co2Graph'
+  | 'methaneGraph';
 
 type TileId = `${TileType}:${number}`;
 
@@ -51,6 +52,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   antennaControlPanel: 'Antenna Control',
   scienceControlPanel: 'Science Motor Control',
   co2Graph: 'CO2 Graph',
+  methaneGraph: 'Methane Graph',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -65,7 +67,8 @@ const ALL_TILE_TYPES: TileType[] = [
   'MotorStatusPanel',
   'antennaControlPanel',
   'scienceControlPanel',
-  'co2Graph'
+  'co2Graph',
+  'methaneGraph'
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -387,6 +390,12 @@ const MosaicDashboard: React.FC = () => {
         return(
           <MosaicWindow {...windowProps}>
             <CO2Graph />
+          </MosaicWindow>
+        )
+      case 'methaneGraph':
+        return(
+          <MosaicWindow {...windowProps}>
+            <MethaneGraph />
           </MosaicWindow>
         )
 

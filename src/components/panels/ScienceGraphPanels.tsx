@@ -5,9 +5,19 @@ import TelemetryGraph from "../TelemetryGraph";
 export const CO2Graph: React.FC = () => {
   return (
     <TelemetryGraph
-      topic="/co2"
+      topic="/science/sensor2"
       label="CO2 Level"
-      color="#00d4ff"
+      color="#ffffff"
+    />
+  );
+};
+
+export const MethaneGraph: React.FC = () => {
+  return (
+    <TelemetryGraph
+      topic="/science/sensor1"
+      label="Methane Level"
+      color="#ffffff"
     />
   );
 };
