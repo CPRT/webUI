@@ -21,6 +21,7 @@ import MotorStatusPanel from './MotorStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
 import { CO2Graph, MethaneGraph } from './ScienceGraphPanels';
+import PDBRailsPanel from './PDBRails';
 
 type TileType =
   | 'mapView'
@@ -35,7 +36,8 @@ type TileType =
   | 'antennaControlPanel'
   | 'scienceControlPanel'
   | 'co2Graph'
-  | 'methaneGraph';
+  | 'methaneGraph'
+  | 'pdbRails';
 
 type TileId = `${TileType}:${number}`;
 
@@ -53,6 +55,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   scienceControlPanel: 'Science Motor Control',
   co2Graph: 'CO2 Graph',
   methaneGraph: 'Methane Graph',
+  pdbRails: 'PDB Rails',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -68,7 +71,8 @@ const ALL_TILE_TYPES: TileType[] = [
   'antennaControlPanel',
   'scienceControlPanel',
   'co2Graph',
-  'methaneGraph'
+  'methaneGraph',
+  'pdbRails'
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -398,6 +402,13 @@ const MosaicDashboard: React.FC = () => {
             <MethaneGraph />
           </MosaicWindow>
         )
+      
+      case 'pdbRails':
+        return(
+          <MosaicWindow {...windowProps}>
+            <PDBRailsPanel />
+          </MosaicWindow>
+        );
 
       default:
         return <div>Unknown tile</div>;
