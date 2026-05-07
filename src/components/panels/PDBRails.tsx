@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import ROSLIB from "roslib";
-import { useROS } from "@/ros/ROSContext";
+import { useROS } from '@/ros/ROSContext';
 
 const dotStyle = (up: boolean): React.CSSProperties => ({
   width: 12,
@@ -33,7 +33,7 @@ const PDBRailsPanel: React.FC = () => {
 
     const pgTopic = new ROSLIB.Topic({
       ros,
-      name: "/pdb_pg",
+      name: "/pdb_rails/pdb_pg",
       messageType: "std_msgs/msg/UInt8",
     });
 
@@ -57,7 +57,7 @@ const PDBRailsPanel: React.FC = () => {
     };
   }, [ros]);
 
-  const toggleFn = (idx) => {
+  const toggleFn = (idx: number) => {
     const newToggle = toggle.map((el, i) => {
       if (i === idx) {
         return !el
@@ -66,10 +66,12 @@ const PDBRailsPanel: React.FC = () => {
       }
     })
     setToggle(newToggle)
+
+    if (!ros) return;
     
     const toggleTopic = new ROSLIB.Topic({
       ros,
-      name: "/pdb_toggle",
+      name: "/pdb_rails/pdb_toggle",
       messageType: "std_msgs/msg/UInt8",
     });
 
@@ -84,7 +86,7 @@ const PDBRailsPanel: React.FC = () => {
     }));
   };
 
-  const failBorder = (idx) => {
+  const failBorder = (idx: number) => {
     if (pg[idx] === false && toggle[idx] === false) {
       return "3px solid #ffc42b"
     }else {
@@ -128,7 +130,7 @@ const PDBRailsPanel: React.FC = () => {
             <tr>
               <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold", borderBottom: "1px solid #222"  }}>Toggle</td>
               {toggle.map((r, idx) => (
-                <td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #222", borderBottom: failBorder(idx), borderLeft: failBorder(idx), borderRight: failBorder(idx)}}>
+                <td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #222", borderLeft: failBorder(idx), borderRight: failBorder(idx)}}>
                   <button style={{ padding: "8px", backgroundColor: r ? "#22c55e" : "#ef4444", borderRadius: "12px", borderStyle: "none" }} onClick={() => {toggleFn(idx)}}>{r ? "Enable" : "Disable"}</button>
                 </td>
               ))}
