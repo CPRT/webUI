@@ -4,14 +4,6 @@ import React, { useEffect, useState } from "react";
 import ROSLIB from "roslib";
 import { useROS } from '@/ros/ROSContext';
 
-const dotStyle = (up: boolean): React.CSSProperties => ({
-  width: 12,
-  height: 12,
-  borderRadius: "50%",
-  display: "inline-block",
-  backgroundColor: up ? "#22c55e" : "#ef4444",
-});
-
 const LABELS = [
   "12V #1",
   "12V #2",
@@ -88,56 +80,115 @@ const PDBRailsPanel: React.FC = () => {
 
   const failBorder = (idx: number) => {
     if (pg[idx] === false && toggle[idx] === false) {
-      return "3px solid #ffc42b"
+      return "warn"
     }else {
-      return "none"
+      return ""
     }
   }
 
   return (
-    <div
-      style={{
-        background: "#1e1e1e",
-        color: "#f1f1f1",
-        padding: 0,
-        height: "100%",
-        overflowY: "auto",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+    <div className="pdb-panel">
       <div style={{ marginTop: 0 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table>
           <thead>
             <tr>
-              <th style={{ borderBottom: "1px solid #333" }}></th>
-              {LABELS.map((r, idx) => (
-                <th style={{ textAlign: "center", padding: "8px", borderBottom: "1px solid #333" }}>
-                  {r}
-                </th>
-              ))}
+              <th>Rail</th>
+              <th>PG</th>
+              <th>Toggle</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold", borderBottom: "1px solid #222" }}>Power Good</td>
-              {pg.map((r, idx) => (
-                <td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #222", borderTop: failBorder(idx), borderLeft: failBorder(idx), borderRight: failBorder(idx) }}>
-                  <span style={dotStyle(r)} />
+            {LABELS.map((r, idx) => (
+              <tr className={failBorder(idx)}>
+                <td>
+                  {r}
                 </td>
-              ))}
-            </tr>
-            <tr>
-              <td style={{ padding: "8px", textAlign: "center", fontWeight: "bold", borderBottom: "1px solid #222"  }}>Toggle</td>
-              {toggle.map((r, idx) => (
-                <td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #222", borderLeft: failBorder(idx), borderRight: failBorder(idx)}}>
-                  <button style={{ padding: "8px", backgroundColor: r ? "#22c55e" : "#ef4444", borderRadius: "12px", borderStyle: "none" }} onClick={() => {toggleFn(idx)}}>{r ? "Enable" : "Disable"}</button>
+                <td>
+                  <span style={{ backgroundColor: pg[idx] ? "#22c55e" : "#ef4444" }} />
                 </td>
-              ))}
-            </tr>
+                <td>
+                  <button className={toggle[idx] ? "btn-on" : "btn-off"} onClick={() => {toggleFn(idx)}}>{toggle[idx] ? "On" : "Off"}</button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
+      <style jsx>{`
+        .pdb-panel {
+          background: #1e1e1e;
+          color: #f1f1f1;
+          padding: 0;
+          height: 100%;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          text-align: center;
+        }
+
+        table {
+          border-spacing: 0;
+          width: 100%;
+        }
+
+        th {
+          border-bottom: 1px solid #333;
+        }
+
+        td {
+          padding: 8px;
+          border-bottom: 1px solid #222;
+        }
+
+        .warn td {
+          padding: 5px 8px 5px 8px;
+          border: 3px solid #ffc42b;
+          border-style: solid none solid none;
+        }
+
+        .warn td:first-child {
+          padding: 5px 8px 5px 5px;
+          border: 3px solid #ffc42b;
+          border-style: solid none solid solid;
+        }
+        
+        .warn td:last-child {
+          padding: 5px 5px 5px 8px;
+          border: 3px solid #ffc42b;
+          border-style: solid solid solid none;
+        }
+        
+        span {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          display: inline-block;
+        }
+
+        button {
+          min-width: 38px;
+          border-radius: 12px;
+          border-style: none;
+          padding: 8px;
+          cursor: pointer;
+        }
+
+        .btn-on {
+          background-color: #22c55e;
+        }
+
+        .btn-on:hover {
+          background-color: #1e7e34;
+        }
+
+        .btn-off {
+          background-color: #dc3545;
+        }
+
+        .btn-off:hover {
+          background-color: #A03232;
+        }
+      `}</style>
     </div>
   );
 };
