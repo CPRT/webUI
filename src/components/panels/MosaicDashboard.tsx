@@ -22,6 +22,7 @@ import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
 import { CO2Graph, MethaneGraph } from './ScienceGraphPanels';
 import PDBRailsPanel from './PDBRails';
+import ArmControlPanel from './ArmControlPanel';
 
 type TileType =
   | 'mapView'
@@ -37,7 +38,8 @@ type TileType =
   | 'scienceControlPanel'
   | 'co2Graph'
   | 'methaneGraph'
-  | 'pdbRails';
+  | 'pdbRails'
+  | 'armControlPanel';
 
 type TileId = `${TileType}:${number}`;
 
@@ -56,6 +58,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   co2Graph: 'CO2 Graph',
   methaneGraph: 'Methane Graph',
   pdbRails: 'PDB Rails',
+  armControlPanel: 'Arm Control',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -72,7 +75,8 @@ const ALL_TILE_TYPES: TileType[] = [
   'scienceControlPanel',
   'co2Graph',
   'methaneGraph',
-  'pdbRails'
+  'pdbRails',
+  'armControlPanel',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -122,10 +126,15 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
         direction: 'row',
         first: {
           direction: 'row',
-          first: makeTileId('rosMonitor'),
+          first: {
+            direction: 'column',
+            first: makeTileId('antennaControlPanel'),
+            second: makeTileId('MotorStatusPanel'),
+            splitPercentage: 35,
+          },
           second: makeTileId('networkHealthMonitor'),
         },
-        second: makeTileId('orientationDisplay'),
+        second: makeTileId('rosMonitor'),
         splitPercentage: 55,
       },
       splitPercentage: 55,
@@ -143,7 +152,7 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
         },
         splitPercentage: 50,
       },
-      splitPercentage: 50,
+      splitPercentage: 60,
     },
     splitPercentage: 60,
   };
@@ -402,13 +411,18 @@ const MosaicDashboard: React.FC = () => {
             <MethaneGraph />
           </MosaicWindow>
         )
-      
       case 'pdbRails':
         return(
           <MosaicWindow {...windowProps}>
             <PDBRailsPanel />
           </MosaicWindow>
         );
+      case 'armControlPanel':
+        return(
+          <MosaicWindow {...windowProps}>
+            <ArmControlPanel />
+          </MosaicWindow>
+        )
 
       default:
         return <div>Unknown tile</div>;
