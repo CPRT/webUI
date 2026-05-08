@@ -21,6 +21,7 @@ import MotorStatusPanel from './MotorStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
 import { CO2Graph, MethaneGraph } from './ScienceGraphPanels';
+import ArmControlPanel from './ArmControlPanel';
 
 type TileType =
   | 'mapView'
@@ -35,7 +36,8 @@ type TileType =
   | 'antennaControlPanel'
   | 'scienceControlPanel'
   | 'co2Graph'
-  | 'methaneGraph';
+  | 'methaneGraph'
+  | 'armControlPanel';
 
 type TileId = `${TileType}:${number}`;
 
@@ -53,6 +55,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   scienceControlPanel: 'Science Motor Control',
   co2Graph: 'CO2 Graph',
   methaneGraph: 'Methane Graph',
+  armControlPanel: 'Arm Control',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -68,7 +71,8 @@ const ALL_TILE_TYPES: TileType[] = [
   'antennaControlPanel',
   'scienceControlPanel',
   'co2Graph',
-  'methaneGraph'
+  'methaneGraph',
+  'armControlPanel',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -118,10 +122,15 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
         direction: 'row',
         first: {
           direction: 'row',
-          first: makeTileId('rosMonitor'),
+          first: {
+            direction: 'column',
+            first: makeTileId('antennaControlPanel'),
+            second: makeTileId('MotorStatusPanel'),
+            splitPercentage: 35,
+          },
           second: makeTileId('networkHealthMonitor'),
         },
-        second: makeTileId('orientationDisplay'),
+        second: makeTileId('rosMonitor'),
         splitPercentage: 55,
       },
       splitPercentage: 55,
@@ -139,7 +148,7 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
         },
         splitPercentage: 50,
       },
-      splitPercentage: 50,
+      splitPercentage: 60,
     },
     splitPercentage: 60,
   };
@@ -396,6 +405,12 @@ const MosaicDashboard: React.FC = () => {
         return(
           <MosaicWindow {...windowProps}>
             <MethaneGraph />
+          </MosaicWindow>
+        )
+      case 'armControlPanel':
+        return(
+          <MosaicWindow {...windowProps}>
+            <ArmControlPanel />
           </MosaicWindow>
         )
 
