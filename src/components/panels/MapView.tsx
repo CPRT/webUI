@@ -1,16 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
-import { useWaypoints } from '@/contexts/WaypointContext';
+import { useWaypoints, LatLngTuple } from '@/contexts/WaypointContext';
 import BreadcrumbTrail from '../BreadCrumbTrail';
 import WaypointCreatorWindow from '../WaypointCreatorWindow';
 import MapInteractionHandler from '../MapInteractionHandler';
 import MapCompass from '../MapCompass';
 import { useEnvContext } from 'next-runtime-env';
-
-
+import { useROS } from '@/ros/ROSContext';
+import ROSLIB from 'roslib';
 
 const getCustomIcon = (color: string) =>
   L.divIcon({
@@ -25,9 +25,32 @@ type MapViewProps = {
 };
 
 const MapView: React.FC<MapViewProps> = ({offline}) => {
+  const { ros } = useROS();
+  const [droneLoc, setDroneLoc] = useState<LatLngTuple>([0, 0]);
   const { waypoints } = useWaypoints();
   const { NEXT_PUBLIC_TILE_SERVER } = useEnvContext();
   const tileServer = NEXT_PUBLIC_TILE_SERVER || "localhost:80";
+
+  useEffect(() => {
+    if (!ros) return;
+
+    const droneTopic = new ROSLIB.Topic({
+      ros,
+      name: '/mavros_node/mavros_node/global',
+      messageType: 'sensor_msgs/NavSatFix',
+    });
+
+    const handleDrone = (message: any) => {
+      // Assuming the /fix message contains 'latitude' and 'longitude'
+      const { latitude, longitude } = message;
+      setDroneLoc([latitude, longitude]);
+    };
+
+    droneTopic.subscribe(handleDrone);
+    return () => {
+      droneTopic.unsubscribe(handleDrone);
+    };
+  }, [ros]);
 
   return (
     <MapContainer
@@ -42,6 +65,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
         attribution="&copy; Maptiler server"
       />
       <MapInteractionHandler />
+      <Marker position={droneLoc} icon={getCustomIcon("#4657F2")}/>
       {waypoints.map((wp, index) => (
         <Marker key={index} position={wp.coordinate} icon={getCustomIcon(wp.color)}>
           <Popup>
