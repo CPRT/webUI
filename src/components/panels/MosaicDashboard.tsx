@@ -21,6 +21,7 @@ import MotorStatusPanel from './MotorStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
 import { CO2Graph, MethaneGraph } from './ScienceGraphPanels';
+import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
 
 type TileType =
@@ -37,6 +38,7 @@ type TileType =
   | 'scienceControlPanel'
   | 'co2Graph'
   | 'methaneGraph'
+  | 'pdbRails'
   | 'armControlPanel';
 
 type TileId = `${TileType}:${number}`;
@@ -55,6 +57,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   scienceControlPanel: 'Science Motor Control',
   co2Graph: 'CO2 Graph',
   methaneGraph: 'Methane Graph',
+  pdbRails: 'PDB Rails',
   armControlPanel: 'Arm Control',
 };
 
@@ -72,6 +75,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'scienceControlPanel',
   'co2Graph',
   'methaneGraph',
+  'pdbRails',
   'armControlPanel',
 ];
 
@@ -407,6 +411,12 @@ const MosaicDashboard: React.FC = () => {
             <MethaneGraph />
           </MosaicWindow>
         )
+      case 'pdbRails':
+        return(
+          <MosaicWindow {...windowProps}>
+            <PDBRailsPanel />
+          </MosaicWindow>
+        );
       case 'armControlPanel':
         return(
           <MosaicWindow {...windowProps}>
