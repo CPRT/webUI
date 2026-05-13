@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import antennaMarker from "@/../public/satellite-dish.svg";
 import { useWaypoints, LatLngTuple } from '@/contexts/WaypointContext';
 import BreadcrumbTrail from '../BreadCrumbTrail';
 import WaypointCreatorWindow from '../WaypointCreatorWindow';
@@ -20,6 +21,23 @@ const getCustomIcon = (color: string) =>
     iconAnchor: [10, 10],
   });
 
+const getAntennaIcon = (heading: number) =>
+  L.divIcon({
+    html: `
+      <img
+        src="${antennaMarker.src}"
+        style="
+          width: 60px;
+          height: 60px;
+          transform: rotate(${heading - 45}deg); // needed to align svg north, not bothered to edit svg
+        "
+      />
+    `,
+    className: '',
+    iconSize: [30, 30],
+    iconAnchor: [15, 15],
+  });
+
 type MapViewProps = {
   offline: boolean;
 };
@@ -27,6 +45,8 @@ type MapViewProps = {
 const MapView: React.FC<MapViewProps> = ({offline}) => {
   const { ros } = useROS();
   const [droneLoc, setDroneLoc] = useState<LatLngTuple>([0, 0]);
+  const [antennaLoc, setAntennaLoc] = useState<LatLngTuple>([45.385172, -75.698283]);
+  const [antennaHead, setAntennaHead] = useState<number>(0);
   const { waypoints } = useWaypoints();
   const { NEXT_PUBLIC_TILE_SERVER } = useEnvContext();
   const tileServer = NEXT_PUBLIC_TILE_SERVER || "localhost:80";
@@ -40,16 +60,45 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
       messageType: 'sensor_msgs/NavSatFix',
     });
 
+    const antennaFixTopic = new ROSLIB.Topic({
+      ros,
+      name: '/base_station/fix',
+      messageType: 'sensor_msgs/NavSatFix',
+    });
+
+    const antennaBearingTopic = new ROSLIB.Topic({
+      ros,
+      name: '/antenna/tracker_bearing',
+      messageType: 'std_msgs/Float32',
+    });
+
     const handleDrone = (message: any) => {
       // Assuming the /fix message contains 'latitude' and 'longitude'
       const { latitude, longitude } = message;
       setDroneLoc([latitude, longitude]);
     };
+    
+    const handleAntennaFix = (message: any) => {
+      // Assuming the /fix message contains 'latitude' and 'longitude'
+      const { latitude, longitude } = message;
+      setAntennaLoc([latitude, longitude]);
+    };
+
+    const handleAntennaBearing = (message: any) => {
+      // Assuming the message contains float32
+      const angle = message.data * 360;
+      setAntennaHead(angle);
+    };
 
     droneTopic.subscribe(handleDrone);
+    antennaFixTopic.subscribe(handleAntennaFix);
+    antennaBearingTopic.subscribe(handleAntennaBearing);
     return () => {
       droneTopic.unsubscribe(handleDrone);
+      antennaFixTopic.unsubscribe(handleAntennaFix);
+      antennaBearingTopic.unsubscribe(handleAntennaBearing);
     };
+
   }, [ros]);
 
   return (
@@ -66,6 +115,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
       />
       <MapInteractionHandler />
       <Marker position={droneLoc} icon={getCustomIcon("#4657F2")}/>
+      <Marker position={antennaLoc} icon={getAntennaIcon(antennaHead)}/>
       {waypoints.map((wp, index) => (
         <Marker key={index} position={wp.coordinate} icon={getCustomIcon(wp.color)}>
           <Popup>
