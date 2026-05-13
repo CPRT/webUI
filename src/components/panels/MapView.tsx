@@ -85,7 +85,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
     };
 
     const handleAntennaBearing = (message: any) => {
-      // Assuming the /fix message contains 'latitude' and 'longitude'
+      // Assuming the message contains float32
       const angle = message.data * 360;
       setAntennaHead(angle);
     };
