@@ -48,8 +48,8 @@ const AntennaControlPanel: React.FC = () => {
   // Determine what value should be published right now
   const computeValue = () => {
     if (enabled) return 0.0;
-    if (leftHeld && !rightHeld) return -0.5;
-    if (rightHeld && !leftHeld) return 0.5;
+    if (leftHeld && !rightHeld) return -0.125;
+    if (rightHeld && !leftHeld) return 0.125;
     return 0.0; // neither held OR both held
   };
 
