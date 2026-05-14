@@ -6,39 +6,48 @@ import { useROS } from '@/ros/ROSContext';
 const AntennaControlPanel: React.FC = () => {
   const { ros } = useROS();
 
-  const [disabled, setDisabled] = useState(false);
+  const [enabled, setEnabled] = useState(false);
   const [leftHeld, setLeftHeld] = useState(false);
   const [rightHeld, setRightHeld] = useState(false);
 
-  const topicRef = useRef<ROSLIB.Topic | null>(null);
+  const antStatusTopicRef = useRef<ROSLIB.Topic | null>(null);
+  const antValTopicRef = useRef<ROSLIB.Topic | null>(null);
   const intervalRef = useRef<number | null>(null);
 
   // Create/cleanup topic when ROS connection changes
   useEffect(() => {
     if (!ros) {
-      topicRef.current = null;
+      antValTopicRef.current = null;
       return;
     }
 
-    topicRef.current = new ROSLIB.Topic({
+    antValTopicRef.current = new ROSLIB.Topic({
       ros,
-      name: '/antenna_control',
+      name: '/antenna/manual_value',
       messageType: 'std_msgs/Float32',
+    });
+
+    antStatusTopicRef.current = new ROSLIB.Topic({
+      ros,
+      name: '/antenna/manual',
+      messageType: 'std_msgs/Bool',
     });
 
     return () => {
       try {
-        topicRef.current?.unadvertise();
+        antStatusTopicRef.current?.unadvertise();
+        antValTopicRef.current?.unadvertise();
       } catch {
         // ignore
       }
-      topicRef.current = null;
+      antStatusTopicRef.current = null;
+      antValTopicRef.current = null;
     };
   }, [ros]);
 
   // Determine what value should be published right now
   const computeValue = () => {
-    if (disabled) return 0.0;
+    if (enabled) return 0.0;
     if (leftHeld && !rightHeld) return -0.5;
     if (rightHeld && !leftHeld) return 0.5;
     return 0.0; // neither held OR both held
@@ -46,7 +55,7 @@ const AntennaControlPanel: React.FC = () => {
 
   // Start/stop the 100ms publish loop
   useEffect(() => {
-    if (!ros || !topicRef.current) return;
+    if (!ros || !antValTopicRef.current || !antStatusTopicRef.current) return;
 
     // Clear any previous loop
     if (intervalRef.current) {
@@ -57,7 +66,9 @@ const AntennaControlPanel: React.FC = () => {
     // Publish immediately, then every 100ms
     const publishNow = () => {
       const value = computeValue();
-      topicRef.current?.publish(new ROSLIB.Message({ data: value }));
+      const status = enabled;
+      antValTopicRef.current?.publish(new ROSLIB.Message({ data: value }));
+      antStatusTopicRef.current?.publish(new ROSLIB.Message({ data: status }));
     };
 
     publishNow();
@@ -70,23 +81,23 @@ const AntennaControlPanel: React.FC = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ros, disabled, leftHeld, rightHeld]);
+  }, [ros, enabled, leftHeld, rightHeld]);
 
   // If user disables controls, clear held state so it goes to 0 cleanly
   useEffect(() => {
-    if (disabled) {
+    if (enabled) {
       setLeftHeld(false);
       setRightHeld(false);
     }
-  }, [disabled]);
+  }, [enabled]);
 
   const setHeld = (side: 'left' | 'right', held: boolean) => {
-    if (disabled) return;
+    if (enabled) return;
     if (side === 'left') setLeftHeld(held);
     else setRightHeld(held);
   };
 
-  const btnDisabled = disabled || !ros;
+  const btnDisabled = enabled || !ros;
 
   return (
     <div className="antenna-panel">
@@ -121,8 +132,8 @@ const AntennaControlPanel: React.FC = () => {
       <label className="checkbox">
         <input
           type="checkbox"
-          checked={disabled}
-          onChange={(e) => setDisabled(e.target.checked)}
+          checked={enabled}
+          onChange={(e) => setEnabled(e.target.checked)}
         />
         Auto tracking
       </label>
