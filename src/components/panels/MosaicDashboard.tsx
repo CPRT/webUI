@@ -20,7 +20,7 @@ import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
-import { CO2Graph, MethaneGraph } from './ScienceGraphPanels';
+import EspSensorPanel from './EspSensorPanel';
 import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
 
@@ -36,8 +36,7 @@ type TileType =
   | 'MotorStatusPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
-  | 'co2Graph'
-  | 'methaneGraph'
+  | 'espSensorPanel'
   | 'pdbRails'
   | 'armControlPanel';
 
@@ -55,8 +54,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   MotorStatusPanel: 'Motor Status',
   antennaControlPanel: 'Antenna Control',
   scienceControlPanel: 'Science Motor Control',
-  co2Graph: 'CO2 Graph',
-  methaneGraph: 'Methane Graph',
+  espSensorPanel: 'ESP Sensor',
   pdbRails: 'PDB Rails',
   armControlPanel: 'Arm Control',
 };
@@ -73,8 +71,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'MotorStatusPanel',
   'antennaControlPanel',
   'scienceControlPanel',
-  'co2Graph',
-  'methaneGraph',
+  'espSensorPanel',
   'pdbRails',
   'armControlPanel',
 ];
@@ -399,16 +396,10 @@ const MosaicDashboard: React.FC = () => {
             <ScienceControlPanel />
           </MosaicWindow>
         );
-      case 'co2Graph':
+      case 'espSensorPanel':
         return(
           <MosaicWindow {...windowProps}>
-            <CO2Graph />
-          </MosaicWindow>
-        )
-      case 'methaneGraph':
-        return(
-          <MosaicWindow {...windowProps}>
-            <MethaneGraph />
+            <EspSensorPanel />
           </MosaicWindow>
         )
       case 'pdbRails':
