@@ -26,10 +26,15 @@ const VideoPresetsPanel: React.FC<VideoPresetsPanelProps> = ({
       },
     },
     {
-      name: "Microscope",
+      name: "Science",
       preset: {
-        num_sources: 1,
-        sources: [{ name: "Microscope", width: 100, height: 100, origin_x: 0, origin_y: 0 }],
+        num_sources: 4,
+        sources: [
+          { name: "Microscope", width: 50, height: 50, origin_x: 0, origin_y: 0 },
+          { name: "Strip", width: 50, height: 50, origin_x: 50, origin_y: 0 },
+          { name: "Benedict", width: 50, height: 50, origin_x: 0, origin_y: 50 },
+          { name: "HCL", width: 50, height: 50, origin_x: 50, origin_y: 50 },
+        ],
       },
     },
     {
