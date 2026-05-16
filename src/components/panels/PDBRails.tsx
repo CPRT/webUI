@@ -25,7 +25,7 @@ const PDBRailsPanel: React.FC = () => {
 
     const pgTopic = new ROSLIB.Topic({
       ros,
-      name: "/pdb_rails/pdb_pg",
+      name: "/pdb_rails_node/pdb_pg",
       messageType: "std_msgs/msg/UInt8",
     });
 
@@ -63,7 +63,7 @@ const PDBRailsPanel: React.FC = () => {
     
     const toggleTopic = new ROSLIB.Topic({
       ros,
-      name: "/pdb_rails/pdb_toggle",
+      name: "/pdb_rails_node/pdb_toggle",
       messageType: "std_msgs/msg/UInt8",
     });
 
