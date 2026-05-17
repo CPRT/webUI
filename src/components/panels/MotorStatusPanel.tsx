@@ -137,7 +137,7 @@ const MotorStatusPanel: React.FC = () => {
                   <td>{label}</td>
                   <td>{stat ? stat.velocity.toFixed(2) : '-'}</td>
                   <td>{stat ? `${stat.output_current.toFixed(2)}A` : '-'}</td>
-                  <td>{errorStr}</td>
+                  <td><span className="status-led" style={{ backgroundColor: errorStr == "NONE" ? "#22c55e" : "#ef4444" }}/><span style={{ paddingLeft: "8px" }}>{errorStr}</span></td>
                 </tr>
               );
             }
@@ -179,6 +179,13 @@ const MotorStatusPanel: React.FC = () => {
 
         .motor-table tbody tr:hover {
           background-color: #262626;
+        }
+
+        .status-led {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          display: inline-block;
         }
       `}</style>
     </div>
