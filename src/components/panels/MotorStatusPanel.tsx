@@ -6,22 +6,55 @@ import { useROS } from '@/ros/ROSContext';
 
 type MotorStatus = {
   velocity: number;
-  temperature: number;
   output_current: number;
+  active_errors: number;
 };
 
 const MOTORS = {
-  fl_d: { label: 'FLeft_Drive', topic: '/Left_front_wheel_joint/status' },
-  fr_d: { label: 'FRight_Drive', topic: '/Right_front_wheel_joint/status' },
-  rl_d: { label: 'BLeft_Drive', topic: '/Left_back_wheel_joint/status' },
-  rr_d: { label: 'BRight_Drive', topic: '/Right_back_wheel_joint/status' },
-  fl_s: { label: 'FLeft_Steer', topic: '/Left_front_wheel_arm_joint/status' },
-  fr_s: { label: 'FRight_Steer', topic: '/Right_front_wheel_arm_joint/status' },
-  rl_s: { label: 'BLeft_Steer', topic: '/Left_back_wheel_arm_joint/status' },
-  rr_s: { label: 'BRight_Steer', topic: '/Right_back_wheel_arm_joint/status' },
+  fl_d: { label: 'FLeft Drive', topic: '/Left_front_wheel_joint/status' },
+  fr_d: { label: 'FRight Drive', topic: '/Right_front_wheel_joint/status' },
+  rl_d: { label: 'BLeft Drive', topic: '/Left_back_wheel_joint/status' },
+  rr_d: { label: 'BRight Drive', topic: '/Right_back_wheel_joint/status' },
+  fl_s: { label: 'FLeft Steer', topic: '/Left_front_wheel_arm_joint/status' },
+  fr_s: { label: 'FRight Steer', topic: '/Right_front_wheel_arm_joint/status' },
+  rl_s: { label: 'BLeft Steer', topic: '/Left_back_wheel_arm_joint/status' },
+  rr_s: { label: 'BRight Steer', topic: '/Right_back_wheel_arm_joint/status' },
+  j1: { label: 'Base', topic: '/Joint_1/status'},
+  j2: { label: 'Shoulder', topic: '/Joint_2/status'},
+  j3: { label: 'Elbow Pivot', topic: '/Joint_3/status'},
+  j4: { label: 'Elbow Spin', topic: '/Joint_4/status'},
+  j5: { label: 'Wrist Pivot', topic: '/Joint_5/status'},
+  j6: { label: 'Wrist Spin', topic: '/Joint_6/status'},
+  eef: { label: 'End Effector', topic: '/end_effector/status'},
 } as const;
 
 type MotorKey = keyof typeof MOTORS;
+
+const MotorError: Record<string, number> = {
+  INITIALIZING: 1,
+  SYSTEM_LEVEL: 2,
+  TIMING_ERROR: 4,
+  MISSING_ESTIMATE: 8,
+  BAD_CONFIG: 16,
+  DRV_FAULT: 32,
+  MISSING_INPUT: 64,
+  DC_BUS_OVER_VOLTAGE: 256,
+  DC_BUS_UNDER_VOLTAGE: 512,
+  DC_BUS_OVER_CURRENT: 1024,
+  DC_BUS_OVER_REGEN_CURRENT: 2048,
+  CURRENT_LIMIT_VIOLATION: 4096,
+  MOTOR_OVER_TEMP: 8192,
+  INVERTER_OVER_TEMP: 16384,
+  VELOCITY_LIMIT_VIOLATION: 32768,
+  POSITION_LIMIT_VIOLATION: 65536,
+  REQUESTED_CURRENT_TOO_HIGH: 131072,
+  WATCHDOG_TIMER_EXPIRED: 16777216,
+  ESTOP_REQUESTED: 33554432,
+  SPINOUT_DETECTED: 67108864,
+  BRAKE_RESISTOR_DISARMED: 134217728,
+  THERMISTOR_DISCONNECTED: 268435456,
+  CALIBRATION_ERROR: 1073741824,
+};
 
 const MotorStatusPanel: React.FC = () => {
   const { ros } = useROS();
@@ -37,6 +70,13 @@ const MotorStatusPanel: React.FC = () => {
     fr_s: null,
     rl_s: null,
     rr_s: null,
+    j1: null,
+    j2: null,
+    j3: null,
+    j4: null,
+    j5: null,
+    j6: null,
+    eef: null,
   });
 
   useEffect(() => {
@@ -57,8 +97,8 @@ const MotorStatusPanel: React.FC = () => {
           ...prev,
           [key]: {
             velocity: msg.velocity,
-            temperature: msg.temperature,
             output_current: msg.output_current,
+            active_errors: msg.active_errors
           },
         }));
       };
@@ -77,21 +117,27 @@ const MotorStatusPanel: React.FC = () => {
           <tr>
             <th>Motor</th>
             <th>Vel.</th>
-            <th>Temp.</th>
             <th>Curr.</th>
+            <th>Errors</th>
           </tr>
         </thead>
         <tbody>
           {(Object.entries(MOTORS) as [MotorKey, typeof MOTORS[MotorKey]][]).map(
             ([key, { label }]) => {
               const stat = motorStats[key];
+              var errorStr = '-';
+              if (stat) {
+                var errNames: string[] = [];
+                Object.keys(MotorError).forEach((key: string) => { if (stat.active_errors & MotorError[key]) errNames.push(key) })
+                errorStr = errNames.length ? errNames.join(', ') : "NONE";
+              }
 
               return (
                 <tr key={key}>
                   <td>{label}</td>
                   <td>{stat ? stat.velocity.toFixed(2) : '-'}</td>
-                  <td>{stat ? `${stat.temperature.toFixed(2)}°C` : '-'}</td>
                   <td>{stat ? `${stat.output_current.toFixed(2)}A` : '-'}</td>
+                  <td>{errorStr}</td>
                 </tr>
               );
             }
