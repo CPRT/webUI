@@ -2,7 +2,7 @@
 
 LOCAL_IP=""
 while [ -z "$LOCAL_IP" ]; do
-  LOCAL_IP=$(hostname -I | grep -oP '([0-9.]+(\.0)[0-9.]+)' || awk '{print $1}')
+  LOCAL_IP=$(ip addr show eno0 | grep -oP '(?<=inet )([0-9\.]+)' || hostname -I | awk '{print $1}')
   sleep 1
 done
 TILING_SERVER_PORT=80
