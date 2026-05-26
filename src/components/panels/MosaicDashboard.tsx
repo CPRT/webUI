@@ -131,7 +131,7 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
           },
           second: makeTileId('networkHealthMonitor'),
         },
-        second: makeTileId('rosMonitor'),
+        second: makeTileId('waypointList'),
         splitPercentage: 55,
       },
       splitPercentage: 55,
@@ -141,11 +141,11 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
       first: makeTileId('videoControls'),
       second: {
         direction: 'row',
-        first: makeTileId('waypointList'),
+        first: makeTileId('pdbRails'),
         second: {
           direction: 'row',
-          first: makeTileId('gasSensor'),
-          second: makeTileId('goalSetter'),
+          first: makeTileId('espSensorPanel'),
+          second: makeTileId('armControlPanel'),
         },
         splitPercentage: 50,
       },

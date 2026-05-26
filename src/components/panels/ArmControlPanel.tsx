@@ -9,6 +9,8 @@ const ArmControlPanel: React.FC = () => {
 
   const [poseNames, setPoseNames] = useState<string[]>([]);
   const [selectedPose, setSelectedPose] = useState('');
+  const [distance, setDistance] = useState<number | null>(null);
+  const [distanceStatus, setDistanceStatus] = useState<number | null>(null);
   const [response, setResponse] = useState<{ success: boolean; message: string } | null>(null);
 
   const refreshPoseNames = () => {
@@ -35,6 +37,38 @@ const ArmControlPanel: React.FC = () => {
   useEffect(() => {
     refreshPoseNames();
   }, [ros]);
+
+  useEffect(() => {
+    if (!ros) return;
+
+    const distanceTopic = new ROSLIB.Topic({
+      ros,
+      name: '/eef_distance',
+      messageType: 'interfaces/msg/Distance',
+    });
+
+    const handleDistance = (msg: any) => {
+      setDistance(msg.distance);
+      setDistanceStatus(msg.status);
+    };
+
+    distanceTopic.subscribe(handleDistance);
+
+    return () => {
+      distanceTopic.unsubscribe(handleDistance);
+    };
+  }, [ros]);
+
+  const getDistanceDisplay = () => {
+    const GRIPPER_OFFSET = 0.18;
+    if (distance === null) return 'No data';
+    const distance_with_offset = distance - GRIPPER_OFFSET;
+
+    if (distanceStatus === 1) return `Error (${distance_with_offset.toFixed(3)})`;
+    if (distanceStatus === 2) return `Invalid (${distance_with_offset.toFixed(3)})`;
+
+    return distance_with_offset.toFixed(3);
+  };
 
   const handleGo = () => {
     if (!ros) {
@@ -108,6 +142,11 @@ const ArmControlPanel: React.FC = () => {
         </select>
       </div>
 
+      <div className="display-row">
+        <span>Distance:</span>
+        <strong>{getDistanceDisplay()}</strong>
+      </div>
+
       <button onClick={handleGo} disabled={!selectedPose}>
         Go
       </button>
@@ -150,6 +189,26 @@ const ArmControlPanel: React.FC = () => {
           border-radius: 4px;
           background: #2b2b2b;
           color: #f1f1f1;
+        }
+
+        .display-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+          padding: 0.5rem;
+          border: 1px solid #333;
+          border-radius: 4px;
+          background: #2b2b2b;
+        }
+
+        .display-row span {
+          color: #ccc;
+        }
+
+        .display-row strong {
+          color: #f1f1f1;
+          font-weight: 600;
         }
 
         button {

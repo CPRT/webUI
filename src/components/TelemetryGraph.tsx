@@ -92,6 +92,7 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
             <option value={30}>30 samples</option>
             <option value={60}>60 samples</option>
             <option value={120}>120 samples</option>
+            <option value={240}>240 samples</option>
           </select>
 
           <button onClick={downloadPNG}>PNG</button>
