@@ -7,6 +7,13 @@ import ROSLIB from 'roslib';
 // --------------------
 // Types + Config
 // --------------------
+
+interface RunPolarimeterResponse {
+  success: boolean;
+  message: string;
+  file_path: string;
+}
+
 type DCMotorConfig = {
   id: number;
   name: string;
@@ -80,16 +87,6 @@ const motors: MotorConfig[] = [
     type: 'servo',
   },
   {
-    id: 27,
-    name: 'Polar Servo',
-    defaultPosition: 45,
-    minPulseUs: 615,
-    maxPulseUs: 2495,
-    maxDegrees: 195,
-    frequency: 50,
-    type: 'servo',
-  },
-  {
     id: 32,
     name: 'Resin Servo',
     defaultPosition: 45,
@@ -106,6 +103,9 @@ const motors: MotorConfig[] = [
 // --------------------
 const ScienceControlPanel: React.FC = () => {
   const { ros } = useROS();
+
+  const [title, setTitle] = useState<string>("");
+  const [polarStatus, setPolarStatus] = useState<string>("");
 
   const sendCommand: SendCommandFn = (
     motorID,
@@ -151,6 +151,25 @@ const ScienceControlPanel: React.FC = () => {
     });
   };
 
+  const handlePolar = () => {
+    if (!ros) return;
+    
+    setPolarStatus("Waiting...");
+
+    const polarSrv = new ROSLIB.Service({
+      ros,
+      name: "/run_polarimeter",
+      serviceType: "interfaces/srv/RunPolarimeter",
+    });
+
+    polarSrv.callService(
+      new ROSLIB.ServiceRequest({title: title}),
+      (response: RunPolarimeterResponse) => {
+        setPolarStatus(response.success ? "Success: " + response.message : "Failed");
+      },
+    );
+  };
+
   return (
     <div className="panel">
       <h3>Science Control</h3>
@@ -173,6 +192,26 @@ const ScienceControlPanel: React.FC = () => {
             />
           )
         )}
+      <div className="motor">
+        <h4>Polarimeter</h4>
+  
+        <label>
+          Title
+          <input
+            type="text"
+            value={title}
+            disabled={!ros}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+  
+        <div className="buttons servo-buttons">
+          <button disabled={!ros} onClick={handlePolar}>
+            Go
+          </button>
+          {polarStatus}
+        </div>
+      </div>
       </div>
 
       <style jsx>{`
@@ -463,7 +502,7 @@ const ServoMotor: React.FC<ServoMotorProps> = ({
       (safePos / motor.maxDegrees) * (motor.maxPulseUs - motor.minPulseUs);
 
     const dutyPercent = (pulseUs * motor.frequency / 1000000) * 100;
-    sendCommand(motor.id, TYPE_SERVO, dutyPercent, 0, motor.frequency);
+    sendCommand(motor.id, TYPE_SERVO, dutyPercent, 0, motor.frequency); 
   };
 
   return (
