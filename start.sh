@@ -5,6 +5,7 @@ while [ -z "$LOCAL_IP" ]; do
   LOCAL_IP=$(ip addr show enP8p1s0 | grep -oP '(?<=inet )([0-9\.]+)' || hostname -I | awk '{print $1}')
   sleep 1
 done
+LOCAL_IP="192.168.0.20"
 TILING_SERVER_PORT=80
 echo "Local IP address: $LOCAL_IP"
 
