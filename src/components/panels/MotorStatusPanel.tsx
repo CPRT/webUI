@@ -79,6 +79,44 @@ const MotorStatusPanel: React.FC = () => {
     eef: null,
   });
 
+  const [resettingMotors, setResettingMotors] = useState<
+    Partial<Record<MotorKey, boolean>>
+  >({});
+
+  const getClearErrorsServiceName = (topic: string) =>
+    topic.replace(/\/status$/, '/clear_errors');
+
+  const handleResetErrors = (key: MotorKey, topic: string) => {
+    if (!ros || resettingMotors[key]) return;
+
+    setResettingMotors(prev => ({ ...prev, [key]: true }));
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: getClearErrorsServiceName(topic),
+      serviceType: 'std_srvs/srv/Trigger',
+    });
+
+    service.callService(
+      new ROSLIB.ServiceRequest({}),
+      () => {
+        setMotorStats(prev => ({
+          ...prev,
+          [key]: prev[key]
+            ? {
+                ...prev[key],
+                active_errors: 0,
+              }
+            : prev[key],
+        }));
+        setResettingMotors(prev => ({ ...prev, [key]: false }));
+      },
+      () => {
+        setResettingMotors(prev => ({ ...prev, [key]: false }));
+      },
+    );
+  };
+
   useEffect(() => {
     if (!ros) return;
 
@@ -119,11 +157,12 @@ const MotorStatusPanel: React.FC = () => {
             <th>Vel.</th>
             <th>Curr.</th>
             <th>Errors</th>
+            <th>Reset</th>
           </tr>
         </thead>
         <tbody>
           {(Object.entries(MOTORS) as [MotorKey, typeof MOTORS[MotorKey]][]).map(
-            ([key, { label }]) => {
+            ([key, { label, topic }]) => {
               const stat = motorStats[key];
               var errorStr = '-';
               if (stat) {
@@ -138,6 +177,15 @@ const MotorStatusPanel: React.FC = () => {
                   <td>{stat ? stat.velocity.toFixed(2) : '-'}</td>
                   <td>{stat ? `${stat.output_current.toFixed(2)}A` : '-'}</td>
                   <td><span className="status-led" style={{ backgroundColor: errorStr == "NONE" ? "#22c55e" : "#ef4444" }}/><span style={{ paddingLeft: "8px" }}>{errorStr}</span></td>
+                  <td>
+                    <button
+                      className="reset-button"
+                      disabled={!ros || resettingMotors[key]}
+                      onClick={() => handleResetErrors(key, topic)}
+                    >
+                      {resettingMotors[key] ? 'Resetting...' : 'Reset'}
+                    </button>
+                  </td>
                 </tr>
               );
             }
@@ -186,6 +234,24 @@ const MotorStatusPanel: React.FC = () => {
           height: 12px;
           border-radius: 50%;
           display: inline-block;
+        }
+
+        .reset-button {
+          background: #3b3b3b;
+          color: #f1f1f1;
+          border: 1px solid #555;
+          border-radius: 4px;
+          padding: 4px 8px;
+          cursor: pointer;
+        }
+
+        .reset-button:hover:not(:disabled) {
+          background: #4a4a4a;
+        }
+
+        .reset-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       `}</style>
     </div>
