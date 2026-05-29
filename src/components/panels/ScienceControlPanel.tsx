@@ -7,6 +7,13 @@ import ROSLIB from 'roslib';
 // --------------------
 // Types + Config
 // --------------------
+
+interface RunPolarimeterResponse {
+  success: boolean;
+  message: string;
+  file_path: string;
+}
+
 type DCMotorConfig = {
   id: number;
   name: string;
@@ -22,7 +29,6 @@ type ServoConfig = {
   defaultPosition: number;
   minPulseUs: number;
   maxPulseUs: number;
-  periodUs: number;
   maxDegrees: number;
   frequency: number;
   type: 'servo';
@@ -32,6 +38,7 @@ type MotorConfig = DCMotorConfig | ServoConfig;
 
 type SendCommandFn = (
   motorID: number,
+  type: number,
   value: number,
   duration?: number,
   frequency?: number,
@@ -49,6 +56,9 @@ type ServoMotorProps = {
   sendCommand: SendCommandFn;
   disabled: boolean;
 };
+
+const TYPE_DC = 0;
+const TYPE_SERVO = 1;
 
 function isDCMotor(motor: MotorConfig): motor is DCMotorConfig {
   return motor.type === 'dc';
@@ -72,18 +82,6 @@ const motors: MotorConfig[] = [
     defaultPosition: 90,
     minPulseUs: 615,
     maxPulseUs: 2495,
-    periodUs: 20000,
-    maxDegrees: 195,
-    frequency: 50,
-    type: 'servo',
-  },
-  {
-    id: 27,
-    name: 'Polar Servo',
-    defaultPosition: 45,
-    minPulseUs: 615,
-    maxPulseUs: 2495,
-    periodUs: 20000,
     maxDegrees: 195,
     frequency: 50,
     type: 'servo',
@@ -94,7 +92,6 @@ const motors: MotorConfig[] = [
     defaultPosition: 45,
     minPulseUs: 350,
     maxPulseUs: 2500,
-    periodUs: 20000,
     maxDegrees: 360,
     frequency: 50,
     type: 'servo',
@@ -107,8 +104,12 @@ const motors: MotorConfig[] = [
 const ScienceControlPanel: React.FC = () => {
   const { ros } = useROS();
 
+  const [title, setTitle] = useState<string>("");
+  const [polarStatus, setPolarStatus] = useState<string>("");
+
   const sendCommand: SendCommandFn = (
     motorID,
+    type,
     value,
     duration,
     frequency,
@@ -132,6 +133,7 @@ const ScienceControlPanel: React.FC = () => {
     topic.publish(
       new ROSLIB.Message({
         pin: motorID,
+        type: type,
         duty_cycle: dutyCycle,
         duration: safeDurationMs,
         frequency,
@@ -141,11 +143,31 @@ const ScienceControlPanel: React.FC = () => {
 
     console.log('[SCIENCE PWM CMD]', {
       pin: motorID,
+      type: type,
       duty_cycle: dutyCycle,
       duration: safeDurationMs,
       frequency,
       ramp,
     });
+  };
+
+  const handlePolar = () => {
+    if (!ros) return;
+    
+    setPolarStatus("Waiting...");
+
+    const polarSrv = new ROSLIB.Service({
+      ros,
+      name: "/run_polarimeter",
+      serviceType: "interfaces/srv/RunPolarimeter",
+    });
+
+    polarSrv.callService(
+      new ROSLIB.ServiceRequest({title: title}),
+      (response: RunPolarimeterResponse) => {
+        setPolarStatus(response.success ? "Success: " + response.message : "Failed");
+      },
+    );
   };
 
   return (
@@ -170,6 +192,26 @@ const ScienceControlPanel: React.FC = () => {
             />
           )
         )}
+      <div className="motor">
+        <h4>Polarimeter</h4>
+  
+        <label>
+          Title
+          <input
+            type="text"
+            value={title}
+            disabled={!ros}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+        </label>
+  
+        <div className="buttons servo-buttons">
+          <button disabled={!ros} onClick={handlePolar}>
+            Go
+          </button>
+          {polarStatus}
+        </div>
+      </div>
       </div>
 
       <style jsx>{`
@@ -355,14 +397,14 @@ const DCMotor: React.FC<DCMotorProps> = ({
     const safeTime = clamp(time, 0, 65.535);
     const safeDuty = clamp(duty, 0, 100);
 
-    sendCommand(motor.id, safeDuty, safeTime, motor.frequency);
+    sendCommand(motor.id, TYPE_DC, safeDuty, safeTime, motor.frequency);
 
     setStartTime(safeTime);
     setRemaining(safeTime);
   };
 
   const handleStop = () => {
-    sendCommand(motor.id, 0, 0, motor.frequency);
+    sendCommand(motor.id, TYPE_DC, 0, 0, motor.frequency);
     setRemaining(null);
   };
 
@@ -448,30 +490,9 @@ const ServoMotor: React.FC<ServoMotorProps> = ({
   disabled,
 }) => {
   const [position, setPosition] = useState<number>(motor.defaultPosition);
-  const [remaining, setRemaining] = useState<number | null>(null);
 
   const clamp = (val: number, min: number, max: number) =>
     Math.min(Math.max(val, min), max);
-
-  useEffect(() => {
-    if (remaining === null) return;
-
-    if (remaining <= 0) {
-      setRemaining(null);
-      return;
-    }
-
-    const interval = window.setInterval(() => {
-      setRemaining((prev) => {
-        if (prev === null) return null;
-
-        const next = prev - 0.1;
-        return next <= 0 ? null : next;
-      });
-    }, 100);
-
-    return () => window.clearInterval(interval);
-  }, [remaining]);
 
   const handleGo = () => {
     const safePos = clamp(position, 0, motor.maxDegrees);
@@ -480,10 +501,8 @@ const ServoMotor: React.FC<ServoMotorProps> = ({
       motor.minPulseUs +
       (safePos / motor.maxDegrees) * (motor.maxPulseUs - motor.minPulseUs);
 
-    const dutyPercent = (pulseUs / motor.periodUs) * 100;
-
-    sendCommand(motor.id, dutyPercent, 0.5, motor.frequency, 0);
-    setRemaining(0.5);
+    const dutyPercent = (pulseUs * motor.frequency / 1000000) * 100;
+    sendCommand(motor.id, TYPE_SERVO, dutyPercent, 0, motor.frequency); 
   };
 
   return (
@@ -503,33 +522,9 @@ const ServoMotor: React.FC<ServoMotorProps> = ({
         />
       </label>
 
-      {remaining !== null && (
-        <>
-          <div className="countdown">{remaining.toFixed(1)}s remaining</div>
-
-          <div className="progress-bg">
-            <div
-              className="progress-fill"
-              style={{ width: `${(remaining / 0.5) * 100}%` }}
-            />
-          </div>
-        </>
-      )}
-
       <div className="buttons servo-buttons">
-        <button disabled={disabled || remaining !== null} onClick={handleGo}>
+        <button disabled={disabled} onClick={handleGo}>
           Go
-        </button>
-
-        <button
-          className="reset"
-          disabled={disabled}
-          onClick={() => {
-            setPosition(motor.defaultPosition);
-            setRemaining(null);
-          }}
-        >
-          Reset
         </button>
       </div>
     </div>
