@@ -69,8 +69,8 @@ const DEFAULT_PWM_FREQUENCY = 50;
 const DEFAULT_RAMP = 0;
 
 const motors: MotorConfig[] = [
-  { id: 23, name: 'Strip', defaultTime: 2.0, defaultDuty: 50, frequency: 2000, type: 'dc' },
-  { id: 18, name: 'Resin Pump', defaultTime: 3.0, defaultDuty: 50, frequency: 2000, type: 'dc' },
+  { id: 18, name: 'Strip', defaultTime: 3.0, defaultDuty: 50, frequency: 2000, type: 'dc' },
+  { id: 23, name: 'Resin Pump', defaultTime: 2.5, defaultDuty: 50, frequency: 2000, type: 'dc' },
   { id: 22, name: 'Polar', defaultTime: 1.5, defaultDuty: 50, frequency: 2000, type: 'dc' },
   { id: 21, name: 'Benedict', defaultTime: 2.5, defaultDuty: 50, frequency: 2000, type: 'dc' },
   { id: 19, name: 'Stirrer', defaultTime: 10.0, defaultDuty: 75, frequency: 2000, type: 'dc' },
