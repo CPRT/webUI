@@ -61,6 +61,12 @@ Access the dashboard at:
 [http://localhost:3000/dashboard](http://localhost:3000/dashboard)  
 (or use the host IP of the machine running the web app).
 
+Connect ros topics (if not running on rover). Run from rover repo, then click connect on Dashboard:
+
+```
+ros2 run rosbridge_server rosbridge_websocket
+```
+
 ## Docker
 
 You can run the dashboard using Docker for easier deployment.
