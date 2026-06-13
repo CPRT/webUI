@@ -174,8 +174,8 @@ const MotorStatusPanel: React.FC = () => {
               return (
                 <tr key={key}>
                   <td>{label}</td>
-                  <td>{stat ? stat.velocity.toFixed(2) : '-'}</td>
-                  <td>{stat ? `${stat.output_current.toFixed(2)}A` : '-'}</td>
+                  <td>{stat && Number.isFinite(stat.velocity) ? stat.velocity.toFixed(2) : '-'}</td>
+                  <td>{stat && Number.isFinite(stat.output_current) ? `${stat.output_current.toFixed(2)}A` : '-'}</td>
                   <td><span className="status-led" style={{ backgroundColor: errorStr == "NONE" ? "#22c55e" : "#ef4444" }}/><span style={{ paddingLeft: "8px" }}>{errorStr}</span></td>
                   <td>
                     <button
