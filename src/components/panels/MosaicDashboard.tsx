@@ -23,6 +23,7 @@ import ScienceControlPanel from './ScienceControlPanel';
 import EspSensorPanel from './EspSensorPanel';
 import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
+import WebRTCClient from './WebRTCClient';
 
 type TileType =
   | 'mapView'
@@ -38,7 +39,9 @@ type TileType =
   | 'scienceControlPanel'
   | 'espSensorPanel'
   | 'pdbRails'
-  | 'armControlPanel';
+  | 'armControlPanel'
+  | 'webRTCClient'
+  ;
 
 type TileId = `${TileType}:${number}`;
 
@@ -57,6 +60,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   espSensorPanel: 'ESP Sensor',
   pdbRails: 'PDB Rails',
   armControlPanel: 'Arm Control',
+  webRTCClient: 'WebRTC Client',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -74,6 +78,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'espSensorPanel',
   'pdbRails',
   'armControlPanel',
+  'webRTCClient',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -401,7 +406,7 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow {...windowProps}>
             <EspSensorPanel />
           </MosaicWindow>
-        )
+        );
       case 'pdbRails':
         return(
           <MosaicWindow {...windowProps}>
@@ -413,7 +418,13 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow {...windowProps}>
             <ArmControlPanel />
           </MosaicWindow>
-        )
+        );
+      case 'webRTCClient':
+        return(
+          <MosaicWindow {...windowProps}>
+            <WebRTCClient />
+          </MosaicWindow>
+        );
 
       default:
         return <div>Unknown tile</div>;
