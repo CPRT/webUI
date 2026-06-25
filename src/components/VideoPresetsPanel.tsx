@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { VideoOutRequest } from "./WebRTCClientPage";
+import { VideoOutRequest } from "./panels/VideoControls";
 
 interface VideoPresetsPanelProps {
   onPresetSelect: (presetName: string, preset: VideoOutRequest) => void;

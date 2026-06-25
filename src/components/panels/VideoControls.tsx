@@ -5,7 +5,23 @@ import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
 import VideoPresetsPanel from "../VideoPresetsPanel";
 import RtpStats from "../RtpStats";
-import type { VideoSource, VideoOutRequest } from "../WebRTCClientPage";
+
+export interface VideoSource {
+  name: string;
+  width: number;
+  height: number;
+  origin_x: number;
+  origin_y: number;
+}
+
+export interface VideoOutRequest {
+  num_sources: number;
+  sources: VideoSource[];
+}
+
+interface VideoOutResponse {
+  success: boolean;
+}
 
 interface VideoOutResponse {
   success: boolean;
