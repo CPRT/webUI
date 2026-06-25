@@ -26,6 +26,8 @@ const MOTORS = {
   j5: { label: 'Wrist Pivot', topic: '/Joint_5/status'},
   j6: { label: 'Wrist Spin', topic: '/Joint_6/status'},
   eef: { label: 'End Effector', topic: '/end_effector/status'},
+  evt: { label: 'Elevator', topic: '/elevator/status'},
+  drl: { label: 'Drill', topic: '/drill/status'},
 } as const;
 
 type MotorKey = keyof typeof MOTORS;
@@ -77,6 +79,8 @@ const MotorStatusPanel: React.FC = () => {
     j5: null,
     j6: null,
     eef: null,
+    evt: null,
+    drl: null
   });
 
   const [resettingMotors, setResettingMotors] = useState<
