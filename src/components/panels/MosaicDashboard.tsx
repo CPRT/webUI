@@ -18,6 +18,7 @@ import GasSensor from './GasSensor';
 import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
+import NodeStatusPanel from './NodeStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
 import EspSensorPanel from './EspSensorPanel';
@@ -35,6 +36,7 @@ type TileType =
   | 'goalSetter'
   | 'networkHealthMonitor'
   | 'MotorStatusPanel'
+  | 'NodeStatusPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
   | 'espSensorPanel'
@@ -55,6 +57,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   goalSetter: 'Nav2',
   networkHealthMonitor: 'Connection Health',
   MotorStatusPanel: 'Motor Status',
+  NodeStatusPanel: 'Node Status',
   antennaControlPanel: 'Antenna Control',
   scienceControlPanel: 'Science Motor Control',
   espSensorPanel: 'ESP Sensor',
@@ -73,6 +76,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'gasSensor',
   'goalSetter',
   'MotorStatusPanel',
+  'NodeStatusPanel',
   'antennaControlPanel',
   'scienceControlPanel',
   'espSensorPanel',
@@ -131,7 +135,12 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
           first: {
             direction: 'column',
             first: makeTileId('antennaControlPanel'),
-            second: makeTileId('MotorStatusPanel'),
+            second: {
+              direction: 'column',
+              first: makeTileId('MotorStatusPanel'),
+              second: makeTileId('NodeStatusPanel'),
+              splitPercentage: 50,
+            },
             splitPercentage: 35,
           },
           second: makeTileId('networkHealthMonitor'),
@@ -388,6 +397,13 @@ const MosaicDashboard: React.FC = () => {
             <MotorStatusPanel />
           </MosaicWindow>
         );
+      
+      case 'NodeStatusPanel':
+      return (
+        <MosaicWindow {...windowProps}>
+          <NodeStatusPanel />
+        </MosaicWindow>
+      );
 
       case 'antennaControlPanel':
         return (
