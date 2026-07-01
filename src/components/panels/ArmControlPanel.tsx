@@ -9,27 +9,41 @@ const ArmControlPanel: React.FC = () => {
 
   const [poseNames, setPoseNames] = useState<string[]>([]);
   const [selectedPose, setSelectedPose] = useState('');
+  const [presetName, setPresetName] = useState('');
   const [distance, setDistance] = useState<number | null>(null);
   const [distanceStatus, setDistanceStatus] = useState<number | null>(null);
   const [response, setResponse] = useState<{ success: boolean; message: string } | null>(null);
 
-  const refreshPoseNames = () => {
+  const refreshPoseNames = (preferredPose?: string) => {
     if (!ros) return;
 
     const service = new ROSLIB.Service({
       ros,
-      name: '/get_names_poses',
-      serviceType: 'interfaces/srv/GetPoses',
+      name: '/move_group_interface/get_named_targets',
+      serviceType: 'interfaces/srv/GetNamedTargets',
     });
 
     const request = new ROSLIB.ServiceRequest({});
 
     service.callService(request, (result: any) => {
-      const names = result.pose_names ?? [];
+      const success = result.success ?? false;
+      const msg = result.message ?? '';
+      if (!success) {
+        setPoseNames([]);
+        setSelectedPose('');
+        setResponse({ success: false, message: `Failed to get named targets: ${msg}` });
+        return;
+      }
+
+      const names = result.names ?? [];
       setPoseNames(names);
 
-      if (names.length > 0 && !selectedPose) {
+      if (preferredPose && names.includes(preferredPose)) {
+        setSelectedPose(preferredPose);
+      } else if (names.length > 0 && !selectedPose) {
         setSelectedPose(names[0]);
+      } else if (selectedPose && !names.includes(selectedPose)) {
+        setSelectedPose(names[0] ?? '');
       }
     });
   };
@@ -70,6 +84,45 @@ const ArmControlPanel: React.FC = () => {
     return distance_with_offset.toFixed(3);
   };
 
+  const handleSavePreset = () => {
+    if (!ros) {
+      alert('ROS is not connected');
+      return;
+    }
+
+    const name = presetName.trim();
+
+    if (!name) {
+      setResponse({ success: false, message: 'Preset name cannot be empty' });
+      return;
+    }
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: '/move_group_interface/save_current_pose',
+      serviceType: 'interfaces/srv/SaveCurrentPose',
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      name,
+    });
+
+    service.callService(request, (result: any) => {
+      const success = result.success ?? false;
+      const message = result.message ?? '';
+
+      setResponse({
+        success,
+        message,
+      });
+
+      if (success) {
+        setPresetName('');
+        refreshPoseNames(name);
+      }
+    });
+  };
+
   const handleGo = () => {
     if (!ros) {
       alert('ROS is not connected');
@@ -83,8 +136,8 @@ const ArmControlPanel: React.FC = () => {
 
     const service = new ROSLIB.Service({
       ros,
-      name: '/go_to_pose',
-      serviceType: 'interfaces/srv/GoToPose',
+      name: '/move_group_interface/go_to_named_pose',
+      serviceType: 'interfaces/srv/GoToNamedPose',
     });
 
     const request = new ROSLIB.ServiceRequest({
@@ -142,6 +195,28 @@ const ArmControlPanel: React.FC = () => {
         </select>
       </div>
 
+      <div className="preset-group">
+        <input
+          type="text"
+          value={presetName}
+          onChange={(e) => setPresetName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSavePreset();
+            }
+          }}
+          placeholder="New preset name"
+        />
+
+        <button
+          className="save-button"
+          onClick={handleSavePreset}
+          disabled={!presetName.trim()}
+        >
+          Save Current Pose
+        </button>
+      </div>
+
       <div className="display-row">
         <span>Distance:</span>
         <strong>{getDistanceDisplay()}</strong>
@@ -183,12 +258,23 @@ const ArmControlPanel: React.FC = () => {
           margin-bottom: 0.25rem;
         }
 
-        select {
+        select,
+        input {
           padding: 0.5rem;
           border: 1px solid #333;
           border-radius: 4px;
           background: #2b2b2b;
           color: #f1f1f1;
+        }
+
+        input::placeholder {
+          color: #999;
+        }
+
+        .preset-group {
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 0.75rem;
         }
 
         .display-row {
@@ -228,6 +314,18 @@ const ArmControlPanel: React.FC = () => {
         button:disabled {
           background: #555;
           cursor: not-allowed;
+        }
+
+        .save-button {
+          background: #198754;
+        }
+
+        .save-button:hover {
+          background: #146c43;
+        }
+
+        .save-button:disabled {
+          background: #555;
         }
 
         .stop-button {
