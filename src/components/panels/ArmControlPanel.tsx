@@ -10,6 +10,8 @@ const ArmControlPanel: React.FC = () => {
   const [poseNames, setPoseNames] = useState<string[]>([]);
   const [selectedPose, setSelectedPose] = useState('');
   const [presetName, setPresetName] = useState('');
+  const [armState, setArmState] = useState<string | null>(null);
+  const [servoStatus, setServoStatus] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [distanceStatus, setDistanceStatus] = useState<number | null>(null);
   const [response, setResponse] = useState<{ success: boolean; message: string } | null>(null);
@@ -50,6 +52,48 @@ const ArmControlPanel: React.FC = () => {
 
   useEffect(() => {
     refreshPoseNames();
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) return;
+
+    const stateTopic = new ROSLIB.Topic({
+      ros,
+      name: '/arm_teleop_node/state',
+      messageType: 'std_msgs/msg/String',
+      queue_size: 1,
+    });
+
+    const handleState = (msg: any) => {
+      setArmState(msg.data);
+    };
+
+    stateTopic.subscribe(handleState);
+
+    return () => {
+      stateTopic.unsubscribe(handleState);
+    };
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) return;
+
+    const statusTopic = new ROSLIB.Topic({
+      ros,
+      name: '/servo_node/status',
+      messageType: 'moveit_msgs/msg/ServoStatus',
+      queue_size: 1,
+    });
+
+    const handleServoStatus = (msg: any) => {
+      setServoStatus(msg.message);
+    };
+
+    statusTopic.subscribe(handleServoStatus);
+
+    return () => {
+      statusTopic.unsubscribe(handleServoStatus);
+    };
   }, [ros]);
 
   useEffect(() => {
@@ -176,6 +220,13 @@ const ArmControlPanel: React.FC = () => {
 
   return (
     <div className="arm-panel">
+      <div className="display-row">
+        <span>State:</span>
+        <strong>{armState ?? 'No data'}</strong>
+        <span>Servo Status:</span>
+        <strong>{servoStatus ?? 'No data'}</strong>
+      </div>
+
       <div className="input-group">
         <label>Named State:</label>
         <select
