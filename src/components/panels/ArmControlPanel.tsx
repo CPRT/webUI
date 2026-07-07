@@ -14,6 +14,9 @@ const ArmControlPanel: React.FC = () => {
   const [servoStatus, setServoStatus] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [distanceStatus, setDistanceStatus] = useState<number | null>(null);
+  const [checkCollisions, setCheckCollisions] = useState(false);
+  const [collisionParameterLoaded, setCollisionParameterLoaded] = useState(false);
+  const [collisionParameterUpdating, setCollisionParameterUpdating] = useState(false);
   const [response, setResponse] = useState<{ success: boolean; message: string } | null>(null);
 
   const refreshPoseNames = (preferredPose?: string) => {
@@ -50,8 +53,41 @@ const ArmControlPanel: React.FC = () => {
     });
   };
 
+  const refreshCollisionChecking = () => {
+    if (!ros) return;
+
+    setCollisionParameterLoaded(false);
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: '/servo_node/get_parameters',
+      serviceType: 'rcl_interfaces/srv/GetParameters',
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      names: ['moveit_servo.check_collisions'],
+    });
+
+    service.callService(request, (result: any) => {
+      const value = result.values?.[0];
+
+      if (!value || value.type !== 1) {
+        setCollisionParameterLoaded(false);
+        setResponse({
+          success: false,
+          message: 'Failed to read /servo_node check_collisions parameter',
+        });
+        return;
+      }
+
+      setCheckCollisions(value.bool_value ?? false);
+      setCollisionParameterLoaded(true);
+    });
+  };
+
   useEffect(() => {
     refreshPoseNames();
+    refreshCollisionChecking();
   }, [ros]);
 
   useEffect(() => {
@@ -126,6 +162,56 @@ const ArmControlPanel: React.FC = () => {
     if (distanceStatus === 2) return `Invalid (${distance_with_offset.toFixed(3)})`;
 
     return distance_with_offset.toFixed(3);
+  };
+
+  const handleCollisionCheckingChange = (enabled: boolean) => {
+    if (!ros) {
+      alert('ROS is not connected');
+      return;
+    }
+
+    setCollisionParameterUpdating(true);
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: '/servo_node/set_parameters',
+      serviceType: 'rcl_interfaces/srv/SetParameters',
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      parameters: [
+        {
+          name: 'moveit_servo.check_collisions',
+          value: {
+            type: 1,
+            bool_value: enabled,
+          },
+        },
+      ],
+    });
+
+    service.callService(request, (result: any) => {
+      const parameterResult = result.results?.[0];
+      const success = parameterResult?.successful ?? false;
+      const reason = parameterResult?.reason ?? '';
+
+      setCollisionParameterUpdating(false);
+
+      if (!success) {
+        setResponse({
+          success: false,
+          message: reason || 'Failed to update collision checking',
+        });
+        refreshCollisionChecking();
+        return;
+      }
+
+      setCheckCollisions(enabled);
+      setResponse({
+        success: true,
+        message: `Collision checking ${enabled ? 'enabled' : 'disabled'}`,
+      });
+    });
   };
 
   const handleSavePreset = () => {
@@ -273,6 +359,20 @@ const ArmControlPanel: React.FC = () => {
         <strong>{getDistanceDisplay()}</strong>
       </div>
 
+      <label className="toggle-row">
+        <span>
+          Collision Checking
+          <small>/servo_node</small>
+        </span>
+
+        <input
+          type="checkbox"
+          checked={checkCollisions}
+          onChange={(e) => handleCollisionCheckingChange(e.target.checked)}
+          disabled={!collisionParameterLoaded || collisionParameterUpdating}
+        />
+      </label>
+
       <button onClick={handleGo} disabled={!selectedPose}>
         Go
       </button>
@@ -346,6 +446,40 @@ const ArmControlPanel: React.FC = () => {
         .display-row strong {
           color: #f1f1f1;
           font-weight: 600;
+        }
+
+        .toggle-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+          padding: 0.5rem;
+          border: 1px solid #333;
+          border-radius: 4px;
+          background: #2b2b2b;
+          cursor: pointer;
+        }
+
+        .toggle-row span {
+          display: flex;
+          flex-direction: column;
+          color: #ccc;
+        }
+
+        .toggle-row small {
+          margin-top: 0.15rem;
+          color: #888;
+          font-size: 0.7rem;
+        }
+
+        .toggle-row input {
+          width: 1.1rem;
+          height: 1.1rem;
+          cursor: pointer;
+        }
+
+        .toggle-row input:disabled {
+          cursor: not-allowed;
         }
 
         button {
