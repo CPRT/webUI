@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 
 
 const dockersToPull = [
-  'cprtsoftware/rover:arm64',
+  'cprtsoftware/rover:latest',
   'cprtsoftware/web-ui:latest',
   'cprtsoftware/container-launcher:latest',
 ];
