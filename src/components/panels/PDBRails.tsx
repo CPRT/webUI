@@ -6,12 +6,12 @@ import { useROS } from '@/ros/ROSContext';
 
 const LABELS = [
   "12V #1",
-  "12V #2",
   "12V #3",
+  "12V #2",
   "12V #4",
   "5V #1",
-  "5V #2",
   "5V #3",
+  "5V #2",
 ];
 
 const PDBRailsPanel: React.FC = () => {
@@ -25,7 +25,7 @@ const PDBRailsPanel: React.FC = () => {
 
     const pgTopic = new ROSLIB.Topic({
       ros,
-      name: "/pdb_rails_node/pdb_pg",
+      name: "/pdb_rails/pdb_pg",
       messageType: "std_msgs/msg/UInt8",
     });
 
@@ -63,7 +63,7 @@ const PDBRailsPanel: React.FC = () => {
     
     const toggleTopic = new ROSLIB.Topic({
       ros,
-      name: "/pdb_rails_node/pdb_toggle",
+      name: "/pdb_rails/pdb_toggle",
       messageType: "std_msgs/msg/UInt8",
     });
 
