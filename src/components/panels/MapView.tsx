@@ -9,9 +9,9 @@ import BreadcrumbTrail from '../BreadCrumbTrail';
 import WaypointCreatorWindow from '../WaypointCreatorWindow';
 import MapInteractionHandler from '../MapInteractionHandler';
 import MapCompass from '../MapCompass';
-import { useEnvContext } from 'next-runtime-env';
 import { useROS } from '@/ros/ROSContext';
 import ROSLIB from 'roslib';
+import { TILING_SERVER } from '@/constants';
 
 const DEFAULT_MAP_CENTER: LatLngTuple = [38.405884, -110.791719];
 
@@ -50,8 +50,6 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
   const [antennaLoc, setAntennaLoc] = useState<LatLngTuple>(DEFAULT_MAP_CENTER);
   const [antennaHead, setAntennaHead] = useState<number>(0);
   const { waypoints } = useWaypoints();
-  const { NEXT_PUBLIC_TILE_SERVER } = useEnvContext();
-  const tileServer = NEXT_PUBLIC_TILE_SERVER || "localhost:80";
 
   useEffect(() => {
     if (!ros) return;
@@ -112,7 +110,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
     >
       <TileLayer
         maxZoom = {22}
-        url={offline? `http://${tileServer}/{z}/{x}/{y}.png` : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
+        url={offline? `http://${TILING_SERVER}/{z}/{x}/{y}.png` : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
         attribution="&copy; Maptiler server"
       />
       <MapInteractionHandler />

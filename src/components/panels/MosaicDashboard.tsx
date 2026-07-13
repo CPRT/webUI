@@ -26,6 +26,8 @@ import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
 import WebRTCClient from './WebRTCClient';
 
+import { ROVER_IP } from '@/constants';
+
 type TileType =
   | 'mapView'
   | 'rosMonitor'
@@ -439,7 +441,7 @@ const MosaicDashboard: React.FC = () => {
         return(
           <MosaicWindow {...windowProps}>
             <WebRTCClient
-              config={{ signalingUrl: `ws://192.168.0.55:8444` }}
+              config={{ signalingUrl: `ws://${ROVER_IP}:8444` }}
             />
           </MosaicWindow>
         );

@@ -1,4 +1,6 @@
-const hosts = ['192.168.0.2', '192.168.0.3', '192.168.0.55']; // Add more hosts here as needed
+import { BASE_AP_IP, ROVER_AP_IP, ROVER_IP } from '@/constants';
+
+const hosts = [BASE_AP_IP, ROVER_AP_IP, ROVER_IP];
 
 const ping = require('ping');
 

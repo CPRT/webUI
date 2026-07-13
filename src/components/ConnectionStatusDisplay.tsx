@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import Cookies from 'js-cookie';
 import { useROS } from '@/ros/ROSContext';
+import { ROVER_IP } from '@/constants';
 
 const ConnectionStatusDisplay: React.FC = () => {
   const { connectionStatus, connect, disconnect } = useROS();
-  const [url, setUrl] = useState('ws://localhost:9090');
+  const [url, setUrl] = useState(`ws://${ROVER_IP}:9090`);
 
   // Load url from cookie on mount
   useEffect(() => {
