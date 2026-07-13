@@ -422,7 +422,9 @@ const MosaicDashboard: React.FC = () => {
       case 'webRTCClient':
         return(
           <MosaicWindow {...windowProps}>
-            <WebRTCClient />
+            <WebRTCClient
+              config={{ signalingUrl: `ws://${window.location.hostname}:8444` }}
+            />
           </MosaicWindow>
         );
 
