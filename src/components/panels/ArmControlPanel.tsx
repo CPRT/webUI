@@ -9,33 +9,127 @@ const ArmControlPanel: React.FC = () => {
 
   const [poseNames, setPoseNames] = useState<string[]>([]);
   const [selectedPose, setSelectedPose] = useState('');
+  const [presetName, setPresetName] = useState('');
+  const [armState, setArmState] = useState<string | null>(null);
+  const [servoStatus, setServoStatus] = useState<string | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [distanceStatus, setDistanceStatus] = useState<number | null>(null);
+  const [checkCollisions, setCheckCollisions] = useState(false);
+  const [collisionParameterLoaded, setCollisionParameterLoaded] = useState(false);
+  const [collisionParameterUpdating, setCollisionParameterUpdating] = useState(false);
   const [response, setResponse] = useState<{ success: boolean; message: string } | null>(null);
 
-  const refreshPoseNames = () => {
+  const refreshPoseNames = (preferredPose?: string) => {
     if (!ros) return;
 
     const service = new ROSLIB.Service({
       ros,
-      name: '/get_names_poses',
-      serviceType: 'interfaces/srv/GetPoses',
+      name: '/move_group_interface/get_named_targets',
+      serviceType: 'interfaces/srv/GetNamedTargets',
     });
 
     const request = new ROSLIB.ServiceRequest({});
 
     service.callService(request, (result: any) => {
-      const names = result.pose_names ?? [];
+      const success = result.success ?? false;
+      const msg = result.message ?? '';
+      if (!success) {
+        setPoseNames([]);
+        setSelectedPose('');
+        setResponse({ success: false, message: `Failed to get named targets: ${msg}` });
+        return;
+      }
+
+      const names = result.names ?? [];
       setPoseNames(names);
 
-      if (names.length > 0 && !selectedPose) {
+      if (preferredPose && names.includes(preferredPose)) {
+        setSelectedPose(preferredPose);
+      } else if (names.length > 0 && !selectedPose) {
         setSelectedPose(names[0]);
+      } else if (selectedPose && !names.includes(selectedPose)) {
+        setSelectedPose(names[0] ?? '');
       }
+    });
+  };
+
+  const refreshCollisionChecking = () => {
+    if (!ros) return;
+
+    setCollisionParameterLoaded(false);
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: '/servo_node/get_parameters',
+      serviceType: 'rcl_interfaces/srv/GetParameters',
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      names: ['moveit_servo.check_collisions'],
+    });
+
+    service.callService(request, (result: any) => {
+      const value = result.values?.[0];
+
+      if (!value || value.type !== 1) {
+        setCollisionParameterLoaded(false);
+        setResponse({
+          success: false,
+          message: 'Failed to read /servo_node check_collisions parameter',
+        });
+        return;
+      }
+
+      setCheckCollisions(value.bool_value ?? false);
+      setCollisionParameterLoaded(true);
     });
   };
 
   useEffect(() => {
     refreshPoseNames();
+    refreshCollisionChecking();
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) return;
+
+    const stateTopic = new ROSLIB.Topic({
+      ros,
+      name: '/arm_teleop_node/state',
+      messageType: 'std_msgs/msg/String',
+      queue_size: 1,
+    });
+
+    const handleState = (msg: any) => {
+      setArmState(msg.data);
+    };
+
+    stateTopic.subscribe(handleState);
+
+    return () => {
+      stateTopic.unsubscribe(handleState);
+    };
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) return;
+
+    const statusTopic = new ROSLIB.Topic({
+      ros,
+      name: '/servo_node/status',
+      messageType: 'moveit_msgs/msg/ServoStatus',
+      queue_size: 1,
+    });
+
+    const handleServoStatus = (msg: any) => {
+      setServoStatus(msg.message);
+    };
+
+    statusTopic.subscribe(handleServoStatus);
+
+    return () => {
+      statusTopic.unsubscribe(handleServoStatus);
+    };
   }, [ros]);
 
   useEffect(() => {
@@ -70,6 +164,95 @@ const ArmControlPanel: React.FC = () => {
     return distance_with_offset.toFixed(3);
   };
 
+  const handleCollisionCheckingChange = (enabled: boolean) => {
+    if (!ros) {
+      alert('ROS is not connected');
+      return;
+    }
+
+    setCollisionParameterUpdating(true);
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: '/servo_node/set_parameters',
+      serviceType: 'rcl_interfaces/srv/SetParameters',
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      parameters: [
+        {
+          name: 'moveit_servo.check_collisions',
+          value: {
+            type: 1,
+            bool_value: enabled,
+          },
+        },
+      ],
+    });
+
+    service.callService(request, (result: any) => {
+      const parameterResult = result.results?.[0];
+      const success = parameterResult?.successful ?? false;
+      const reason = parameterResult?.reason ?? '';
+
+      setCollisionParameterUpdating(false);
+
+      if (!success) {
+        setResponse({
+          success: false,
+          message: reason || 'Failed to update collision checking',
+        });
+        refreshCollisionChecking();
+        return;
+      }
+
+      setCheckCollisions(enabled);
+      setResponse({
+        success: true,
+        message: `Collision checking ${enabled ? 'enabled' : 'disabled'}`,
+      });
+    });
+  };
+
+  const handleSavePreset = () => {
+    if (!ros) {
+      alert('ROS is not connected');
+      return;
+    }
+
+    const name = presetName.trim();
+
+    if (!name) {
+      setResponse({ success: false, message: 'Preset name cannot be empty' });
+      return;
+    }
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: '/move_group_interface/save_current_pose',
+      serviceType: 'interfaces/srv/SaveCurrentPose',
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      name,
+    });
+
+    service.callService(request, (result: any) => {
+      const success = result.success ?? false;
+      const message = result.message ?? '';
+
+      setResponse({
+        success,
+        message,
+      });
+
+      if (success) {
+        setPresetName('');
+        refreshPoseNames(name);
+      }
+    });
+  };
+
   const handleGo = () => {
     if (!ros) {
       alert('ROS is not connected');
@@ -83,8 +266,8 @@ const ArmControlPanel: React.FC = () => {
 
     const service = new ROSLIB.Service({
       ros,
-      name: '/go_to_pose',
-      serviceType: 'interfaces/srv/GoToPose',
+      name: '/move_group_interface/go_to_named_pose',
+      serviceType: 'interfaces/srv/GoToNamedPose',
     });
 
     const request = new ROSLIB.ServiceRequest({
@@ -123,6 +306,13 @@ const ArmControlPanel: React.FC = () => {
 
   return (
     <div className="arm-panel">
+      <div className="display-row">
+        <span>State:</span>
+        <strong>{armState ?? 'No data'}</strong>
+        <span>Servo Status:</span>
+        <strong>{servoStatus ?? 'No data'}</strong>
+      </div>
+
       <div className="input-group">
         <label>Named State:</label>
         <select
@@ -142,10 +332,46 @@ const ArmControlPanel: React.FC = () => {
         </select>
       </div>
 
+      <div className="preset-group">
+        <input
+          type="text"
+          value={presetName}
+          onChange={(e) => setPresetName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSavePreset();
+            }
+          }}
+          placeholder="New preset name"
+        />
+
+        <button
+          className="save-button"
+          onClick={handleSavePreset}
+          disabled={!presetName.trim()}
+        >
+          Save Current Pose
+        </button>
+      </div>
+
       <div className="display-row">
         <span>Distance:</span>
         <strong>{getDistanceDisplay()}</strong>
       </div>
+
+      <label className="toggle-row">
+        <span>
+          Collision Checking
+          <small>/servo_node</small>
+        </span>
+
+        <input
+          type="checkbox"
+          checked={checkCollisions}
+          onChange={(e) => handleCollisionCheckingChange(e.target.checked)}
+          disabled={!collisionParameterLoaded || collisionParameterUpdating}
+        />
+      </label>
 
       <button onClick={handleGo} disabled={!selectedPose}>
         Go
@@ -183,12 +409,23 @@ const ArmControlPanel: React.FC = () => {
           margin-bottom: 0.25rem;
         }
 
-        select {
+        select,
+        input {
           padding: 0.5rem;
           border: 1px solid #333;
           border-radius: 4px;
           background: #2b2b2b;
           color: #f1f1f1;
+        }
+
+        input::placeholder {
+          color: #999;
+        }
+
+        .preset-group {
+          display: flex;
+          flex-direction: column;
+          margin-bottom: 0.75rem;
         }
 
         .display-row {
@@ -211,6 +448,40 @@ const ArmControlPanel: React.FC = () => {
           font-weight: 600;
         }
 
+        .toggle-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.75rem;
+          padding: 0.5rem;
+          border: 1px solid #333;
+          border-radius: 4px;
+          background: #2b2b2b;
+          cursor: pointer;
+        }
+
+        .toggle-row span {
+          display: flex;
+          flex-direction: column;
+          color: #ccc;
+        }
+
+        .toggle-row small {
+          margin-top: 0.15rem;
+          color: #888;
+          font-size: 0.7rem;
+        }
+
+        .toggle-row input {
+          width: 1.1rem;
+          height: 1.1rem;
+          cursor: pointer;
+        }
+
+        .toggle-row input:disabled {
+          cursor: not-allowed;
+        }
+
         button {
           background: #0070f3;
           color: #f1f1f1;
@@ -228,6 +499,18 @@ const ArmControlPanel: React.FC = () => {
         button:disabled {
           background: #555;
           cursor: not-allowed;
+        }
+
+        .save-button {
+          background: #198754;
+        }
+
+        .save-button:hover {
+          background: #146c43;
+        }
+
+        .save-button:disabled {
+          background: #555;
         }
 
         .stop-button {
