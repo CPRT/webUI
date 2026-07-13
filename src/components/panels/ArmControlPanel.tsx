@@ -373,7 +373,7 @@ const ArmControlPanel: React.FC = () => {
         />
       </label>
 
-      <button onClick={handleGo} disabled={!selectedPose || armState != "Idle"}>
+      <button onClick={handleGo} disabled={!selectedPose || armState !== 'Idle'}>
         Go
       </button>
 

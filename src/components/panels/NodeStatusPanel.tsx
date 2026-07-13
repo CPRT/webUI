@@ -65,12 +65,11 @@ const NodeStatusPanel: React.FC = () => {
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      setStaleTime(prev => {return prev - 0.1});
+      setStaleTime(prev => Math.max(-1, prev - 0.1));
     }, 100);
 
     return () => window.clearInterval(interval);
-
-  });
+  }, []);
 
   const sortedNodes = Array.from(nodes.entries()).sort(([a], [b]) =>
     a.localeCompare(b)

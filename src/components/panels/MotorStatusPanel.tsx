@@ -123,8 +123,9 @@ const MotorStatusPanel: React.FC = () => {
   };
 
   const handleResetAll = () => {
-    (Object.entries(MOTORS) as [MotorKey, typeof MOTORS[MotorKey]][]).map(
-      ([key, { label, topic }]) => handleResetErrors(key, topic));
+    (Object.entries(MOTORS) as [MotorKey, typeof MOTORS[MotorKey]][]).forEach(
+      ([key, { topic }]) => handleResetErrors(key, topic),
+    );
   };
 
   useEffect(() => {
@@ -161,22 +162,19 @@ const MotorStatusPanel: React.FC = () => {
 
   useEffect(() => {
     const interval = window.setInterval(() => {
-      for (const key in motorStats) {
-      setMotorStats(prev => ({
-          ...prev,
-          [key]: prev[key as MotorKey]
-            ? {
-                ...prev[key as MotorKey],
-                remaining: prev[key as MotorKey]!.remaining - 0.1,
-              }
-            : prev[key as MotorKey],
-        }));
-      }
+      setMotorStats(prev => {
+        const next = { ...prev };
+        (Object.keys(prev) as MotorKey[]).forEach(key => {
+          const stat = prev[key];
+          if (!stat) return;
+          next[key] = { ...stat, remaining: stat.remaining - 0.1 };
+        });
+        return next;
+      });
     }, 100);
 
     return () => window.clearInterval(interval);
-  }, [motorStats]);
-
+  }, []);
   return (
     <div className="motor-panel">
       <button
