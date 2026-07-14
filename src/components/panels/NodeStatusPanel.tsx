@@ -13,6 +13,7 @@ const NodeStatusPanel: React.FC = () => {
   const { ros } = useROS();
 
   const [nodes, setNodes] = useState<Map<string, NodeInfo>>(new Map());
+  const [staleTime, setStaleTime] = useState<number>(0);
 
   useEffect(() => {
     if (!ros) return;
@@ -49,6 +50,7 @@ const NodeStatusPanel: React.FC = () => {
 
           return updated;
         });
+        setStaleTime(2);
       } catch (e) {
         console.error('Failed to parse node list:', e);
       }
@@ -61,9 +63,19 @@ const NodeStatusPanel: React.FC = () => {
     };
   }, [ros]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setStaleTime(prev => Math.max(-1, prev - 0.1));
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   const sortedNodes = Array.from(nodes.entries()).sort(([a], [b]) =>
     a.localeCompare(b)
   );
+
+  const stale = staleTime < 0;
 
   return (
     <div className="node-panel">
@@ -89,15 +101,17 @@ const NodeStatusPanel: React.FC = () => {
                   <span
                     className="status-led"
                     style={{
-                      backgroundColor: info.online
-                        ? '#22c55e'
-                        : offline
-                          ? '#ef4444'
-                          : '#6b7280',
+                      backgroundColor: stale
+                        ? '#ffc107'
+                        : info.online
+                          ? '#22c55e'
+                          : offline
+                            ? '#ef4444'
+                            : '#6b7280',
                     }}
                   />
                   <span style={{ paddingLeft: 8 }}>
-                    {info.online ? 'Online' : offline ? 'Offline' : 'Unknown'}
+                    {stale ? 'Stale' : info.online ? 'Online' : offline ? 'Offline' : 'Unknown'}
                   </span>
                 </td>
 

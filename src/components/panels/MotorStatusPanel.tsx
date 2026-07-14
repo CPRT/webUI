@@ -8,6 +8,7 @@ type MotorStatus = {
   velocity: number;
   output_current: number;
   active_errors: number;
+  remaining: number;
 };
 
 const MOTORS = {
@@ -121,6 +122,12 @@ const MotorStatusPanel: React.FC = () => {
     );
   };
 
+  const handleResetAll = () => {
+    (Object.entries(MOTORS) as [MotorKey, typeof MOTORS[MotorKey]][]).forEach(
+      ([key, { topic }]) => handleResetErrors(key, topic),
+    );
+  };
+
   useEffect(() => {
     if (!ros) return;
 
@@ -140,7 +147,8 @@ const MotorStatusPanel: React.FC = () => {
           [key]: {
             velocity: msg.velocity,
             output_current: msg.output_current,
-            active_errors: msg.active_errors
+            active_errors: msg.active_errors,
+            remaining: 2
           },
         }));
       };
@@ -152,8 +160,30 @@ const MotorStatusPanel: React.FC = () => {
     return () => unsubscribers.forEach(unsub => unsub());
   }, [ros]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setMotorStats(prev => {
+        const next = { ...prev };
+        (Object.keys(prev) as MotorKey[]).forEach(key => {
+          const stat = prev[key];
+          if (!stat) return;
+          next[key] = { ...stat, remaining: stat.remaining - 0.1 };
+        });
+        return next;
+      });
+    }, 100);
+
+    return () => window.clearInterval(interval);
+  }, []);
   return (
     <div className="motor-panel">
+      <button
+        className="reset-button"
+        disabled={!ros}
+        onClick={handleResetAll}
+      >
+        Reset All
+      </button>
       <table className="motor-table">
         <thead>
           <tr>
@@ -169,10 +199,16 @@ const MotorStatusPanel: React.FC = () => {
             ([key, { label, topic }]) => {
               const stat = motorStats[key];
               var errorStr = '-';
+              var color = "#6c757d";
               if (stat) {
                 var errNames: string[] = [];
                 Object.keys(MotorError).forEach((key: string) => { if (stat.active_errors & MotorError[key]) errNames.push(key) })
                 errorStr = errNames.length ? errNames.join(', ') : "NONE";
+                color = errNames.length ? "#ef4444" : "#22c55e";
+                if (stat.remaining < 0) {
+                  errorStr = "STALE";
+                  color = "#ffc107";
+                }
               }
 
               return (
@@ -180,7 +216,7 @@ const MotorStatusPanel: React.FC = () => {
                   <td>{label}</td>
                   <td>{stat && Number.isFinite(stat.velocity) ? stat.velocity.toFixed(2) : '-'}</td>
                   <td>{stat && Number.isFinite(stat.output_current) ? `${stat.output_current.toFixed(2)}A` : '-'}</td>
-                  <td><span className="status-led" style={{ backgroundColor: errorStr == "NONE" ? "#22c55e" : "#ef4444" }}/><span style={{ paddingLeft: "8px" }}>{errorStr}</span></td>
+                  <td><span className="status-led" style={{ backgroundColor: color }}/><span style={{ paddingLeft: "8px" }}>{errorStr}</span></td>
                   <td>
                     <button
                       className="reset-button"
