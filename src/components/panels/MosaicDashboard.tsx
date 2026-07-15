@@ -25,6 +25,7 @@ import EspSensorPanel from './EspSensorPanel';
 import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
 import WebRTCClient from './WebRTCClient';
+import TimerPanel from './TimerPanel';
 
 import { ROVER_IP } from '@/constants';
 
@@ -45,6 +46,7 @@ type TileType =
   | 'pdbRails'
   | 'armControlPanel'
   | 'webRTCClient'
+  | 'timerPanel'
   ;
 
 type TileId = `${TileType}:${number}`;
@@ -66,6 +68,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   pdbRails: 'PDB Rails',
   armControlPanel: 'Arm Control',
   webRTCClient: 'WebRTC Client',
+  timerPanel: 'Multi-Timer',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -85,6 +88,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'pdbRails',
   'armControlPanel',
   'webRTCClient',
+  'timerPanel',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -446,6 +450,12 @@ const MosaicDashboard: React.FC = () => {
           </MosaicWindow>
         );
 
+      case 'timerPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <TimerPanel />
+          </MosaicWindow>
+        );
       default:
         return <div>Unknown tile</div>;
     }
