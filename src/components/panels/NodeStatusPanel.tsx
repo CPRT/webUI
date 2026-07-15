@@ -21,12 +21,11 @@ const NodeStatusPanel: React.FC = () => {
     const topic = new ROSLIB.Topic({
       ros,
       name: '/system/nodes',
-      messageType: 'std_msgs/msg/String',
+      messageType: 'interfaces/msg/NodeList',
     });
 
     const handleMsg = (msg: any) => {
       try {
-        const data = JSON.parse(msg.data) as { nodes: string[] };
         const now = Date.now();
 
         setNodes(prev => {
@@ -41,7 +40,7 @@ const NodeStatusPanel: React.FC = () => {
           }
 
           // mark active nodes online
-          for (const name of data.nodes) {
+          for (const name of msg.nodes) {
             updated.set(name, {
               online: true,
               lastSeen: now,
