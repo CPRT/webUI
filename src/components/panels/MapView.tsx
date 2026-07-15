@@ -31,7 +31,7 @@ const getAntennaIcon = (heading: number) =>
         style="
           width: 60px;
           height: 60px;
-          transform: rotate(${heading - 45}deg); // needed to align svg north, not bothered to edit svg
+          transform: rotate(${(heading / Math.PI)  * 360 - 45}deg); // needed to align svg north, not bothered to edit svg
         "
       />
     `,
@@ -48,7 +48,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
   const { ros } = useROS();
   const [droneLoc, setDroneLoc] = useState<LatLngTuple>([0, 0]);
   const [antennaLoc, setAntennaLoc] = useState<LatLngTuple>(DEFAULT_MAP_CENTER);
-  const [antennaHead, setAntennaHead] = useState<number>(0);
+  const [antennaHead, setAntennaHead] = useState<number | null>(null);
   const { waypoints } = useWaypoints();
   const { NEXT_PUBLIC_TILE_SERVER } = useEnvContext();
   const tileServer = NEXT_PUBLIC_TILE_SERVER || "localhost:80";
@@ -70,7 +70,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
 
     const antennaBearingTopic = new ROSLIB.Topic({
       ros,
-      name: '/antenna/tracker_bearing',
+      name: '/antenna/bearing',
       messageType: 'std_msgs/Float32',
     });
 
@@ -117,7 +117,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
       />
       <MapInteractionHandler />
       <Marker position={droneLoc} icon={getCustomIcon("#4657F2")}/>
-      <Marker position={antennaLoc} icon={getAntennaIcon(antennaHead)}/>
+      {antennaHead && antennaLoc && <Marker position={antennaLoc} icon={getAntennaIcon(antennaHead)}/>}
       {waypoints.map((wp, index) => (
         <Marker key={index} position={wp.coordinate} icon={getCustomIcon(wp.color)}>
           <Popup>
