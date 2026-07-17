@@ -172,8 +172,6 @@ const ScienceControlPanel: React.FC = () => {
 
   return (
     <div className="panel">
-      <h3>Science Control</h3>
-
       <div className="motor-grid">
         {motors.map((motor) =>
           isDCMotor(motor) ? (

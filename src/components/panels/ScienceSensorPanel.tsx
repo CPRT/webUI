@@ -15,7 +15,7 @@ import {
   Legend,
 } from 'recharts';
 
-interface EspSensorReadings {
+interface ScienceSensorReadings {
   methane: number;
   co2: number;
   polarimeter: number;
@@ -23,7 +23,7 @@ interface EspSensorReadings {
   moisture: number;
 }
 
-type SensorKey = keyof EspSensorReadings;
+type SensorKey = keyof ScienceSensorReadings;
 
 interface Point {
   time: number;
@@ -72,7 +72,7 @@ const SENSOR_OPTIONS: {
   },
 ];
 
-const EspSensorPanel: React.FC = () => {
+const ScienceSensorPanel: React.FC = () => {
   const { ros } = useROS();
 
   const [data, setData] = useState<Point[]>([]);
@@ -90,8 +90,8 @@ const EspSensorPanel: React.FC = () => {
 
     const sensorTopic = new ROSLIB.Topic({
       ros,
-      name: '/esp_sensor_readings',
-      messageType: 'interfaces/msg/EspSensorReadings',
+      name: '/science_sensor_readings',
+      messageType: 'interfaces/msg/ScienceSensorReadings',
     });
 
     const handleSensorReading = (msg: any) => {
@@ -142,7 +142,7 @@ const EspSensorPanel: React.FC = () => {
     });
 
     const link = document.createElement('a');
-    link.download = `esp-${selectedSensor}.png`;
+    link.download = `science-${selectedSensor}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
@@ -151,7 +151,7 @@ const EspSensorPanel: React.FC = () => {
     <div className="panel" ref={containerRef}>
       <div className="header">
         <div>
-          <h3>ESP Sensor Reading</h3>
+          <h3>Science Sensor Reading</h3>
           <p className="sensor-name">{selectedOption.label}</p>
           <p className="latest-value">
             {latestValue !== null ? formatValue(latestValue) : '--'}
@@ -316,4 +316,4 @@ const EspSensorPanel: React.FC = () => {
   );
 };
 
-export default EspSensorPanel;
+export default ScienceSensorPanel;
