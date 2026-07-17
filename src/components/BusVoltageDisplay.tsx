@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useROS } from '@/ros/ROSContext';
 import ROSLIB from 'roslib';
-import BusVoltageIndicator from '@/components/panels/BusVoltageIndicator';
+import BusVoltageIndicator from '@/components/BusVoltageIndicator';
 
 const getVoltageColor = (voltage: number | null) => {
   if (voltage === null) return "#ffffff";
@@ -26,7 +26,7 @@ const BusVoltageDisplay: React.FC = () => {
     const voltageTopic = new ROSLIB.Topic({
       ros,
       name: '/bus_voltage',
-      messageType: 'std_msgs/String',
+      messageType: 'std_msgs/Float32',
     });
     const handleVoltageMessage = (message: any) => {
       setBusVoltage(Number(message.data));

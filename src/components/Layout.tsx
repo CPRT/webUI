@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import ConnectionStatusDisplay from '@/components/ConnectionStatusDisplay';
-import RoverModeDisplay from '@/components/RoverModeDisplay';
+import BusVoltageDisplay from '@/components/BusVoltageDisplay';
 
 interface LayoutProps {
   children: ReactNode;
@@ -17,7 +17,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
         <div className="header-center">
           <ConnectionStatusDisplay />
-          <RoverModeDisplay />
+          <BusVoltageDisplay />
         </div>
       </header>
       <main className="mainContent">{children}</main>
