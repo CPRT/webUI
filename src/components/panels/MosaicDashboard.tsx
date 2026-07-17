@@ -21,7 +21,7 @@ import MotorStatusPanel from './MotorStatusPanel';
 import NodeStatusPanel from './NodeStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
-import EspSensorPanel from './EspSensorPanel';
+import ScienceSensorPanel from './ScienceSensorPanel';
 import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
 import WebRTCClient from './WebRTCClient';
@@ -38,11 +38,11 @@ type TileType =
   | 'orientationDisplay'
   | 'goalSetter'
   | 'networkHealthMonitor'
-  | 'MotorStatusPanel'
-  | 'NodeStatusPanel'
+  | 'motorStatusPanel'
+  | 'nodeStatusPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
-  | 'espSensorPanel'
+  | 'scienceSensorPanel'
   | 'pdbRails'
   | 'armControlPanel'
   | 'webRTCClient'
@@ -60,11 +60,11 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   orientationDisplay: 'Rover Orientation',
   goalSetter: 'Nav2',
   networkHealthMonitor: 'Connection Health',
-  MotorStatusPanel: 'Motor Status',
-  NodeStatusPanel: 'Node Status',
+  motorStatusPanel: 'Motor Status',
+  nodeStatusPanel: 'Node Status',
   antennaControlPanel: 'Antenna Control',
   scienceControlPanel: 'Science Motor Control',
-  espSensorPanel: 'ESP Sensor',
+  scienceSensorPanel: 'Science Sensor Readouts',
   pdbRails: 'PDB Rails',
   armControlPanel: 'Arm Control',
   webRTCClient: 'WebRTC Client',
@@ -80,11 +80,11 @@ const ALL_TILE_TYPES: TileType[] = [
   'waypointList',
   'gasSensor',
   'goalSetter',
-  'MotorStatusPanel',
-  'NodeStatusPanel',
+  'motorStatusPanel',
+  'nodeStatusPanel',
   'antennaControlPanel',
   'scienceControlPanel',
-  'espSensorPanel',
+  'scienceSensorPanel',
   'pdbRails',
   'armControlPanel',
   'webRTCClient',
@@ -143,8 +143,8 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
             first: makeTileId('antennaControlPanel'),
             second: {
               direction: 'column',
-              first: makeTileId('MotorStatusPanel'),
-              second: makeTileId('NodeStatusPanel'),
+              first: makeTileId('motorStatusPanel'),
+              second: makeTileId('nodeStatusPanel'),
               splitPercentage: 50,
             },
             splitPercentage: 35,
@@ -164,7 +164,7 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
         first: makeTileId('pdbRails'),
         second: {
           direction: 'row',
-          first: makeTileId('espSensorPanel'),
+          first: makeTileId('scienceSensorPanel'),
           second: makeTileId('armControlPanel'),
         },
         splitPercentage: 50,
@@ -397,14 +397,14 @@ const MosaicDashboard: React.FC = () => {
           </MosaicWindow>
         );
 
-      case 'MotorStatusPanel':
+      case 'motorStatusPanel':
         return (
           <MosaicWindow {...windowProps}>
             <MotorStatusPanel />
           </MosaicWindow>
         );
       
-      case 'NodeStatusPanel':
+      case 'nodeStatusPanel':
       return (
         <MosaicWindow {...windowProps}>
           <NodeStatusPanel />
@@ -423,10 +423,10 @@ const MosaicDashboard: React.FC = () => {
             <ScienceControlPanel />
           </MosaicWindow>
         );
-      case 'espSensorPanel':
+      case 'scienceSensorPanel':
         return(
           <MosaicWindow {...windowProps}>
-            <EspSensorPanel />
+            <ScienceSensorPanel />
           </MosaicWindow>
         );
       case 'pdbRails':
@@ -449,7 +449,6 @@ const MosaicDashboard: React.FC = () => {
             />
           </MosaicWindow>
         );
-
       case 'timerPanel':
         return (
           <MosaicWindow {...windowProps}>

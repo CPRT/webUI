@@ -13,7 +13,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="pageContainer">
       <header className="header">
         <div className="header-left">
-          <h1 className="title">ROS2 Offline Dashboard</h1>
+          <a href="/"><h1 className="title">ROS2 Offline Dashboard</h1></a>
         </div>
         <div className="header-center">
           <ConnectionStatusDisplay />
@@ -47,6 +47,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         .title {
           margin: 0;
           font-size: 1.2rem;
+        }
+        .title:hover {
+          color: #fff;
+          text-decoration: none;
         }
         .mainContent {
           flex: 1;
