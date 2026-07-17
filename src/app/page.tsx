@@ -117,7 +117,7 @@ const HomePage = () => {
     <Layout>
       <div className="home">
         {names.map((name, idx) => (
-          <a href={"/dashboard?layout=" + encodeURIComponent(JSON.stringify(layouts[idx]))} style={{ borderColor: colors[idx] }}>{name}</a>
+          <a key={name} href={"/dashboard?layout=" + encodeURIComponent(JSON.stringify(layouts[idx]))} style={{ borderColor: colors[idx] }}>{name}</a>
         ))}
       </div>
       <style jsx >{`
