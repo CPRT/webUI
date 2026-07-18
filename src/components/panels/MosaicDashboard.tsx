@@ -26,6 +26,7 @@ import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
 import WebRTCClient from './WebRTCClient';
 import TimerPanel from './TimerPanel';
+import HeadlightControlPanel from './HeadlightControlPanel';
 
 import { ROVER_IP } from '@/constants';
 
@@ -47,6 +48,7 @@ type TileType =
   | 'armControlPanel'
   | 'webRTCClient'
   | 'timerPanel'
+  | 'headlightControlPanel'
   ;
 
 type TileId = `${TileType}:${number}`;
@@ -69,6 +71,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   armControlPanel: 'Arm Control',
   webRTCClient: 'WebRTC Client',
   timerPanel: 'Multi-Timer',
+  headlightControlPanel: 'Headlights',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -89,6 +92,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'armControlPanel',
   'webRTCClient',
   'timerPanel',
+  'headlightControlPanel',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -453,6 +457,12 @@ const MosaicDashboard: React.FC = () => {
         return (
           <MosaicWindow {...windowProps}>
             <TimerPanel />
+          </MosaicWindow>
+        );
+      case 'headlightControlPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <HeadlightControlPanel />
           </MosaicWindow>
         );
       default:
