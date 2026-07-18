@@ -1,9 +1,8 @@
 'use client';
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import VideoCustomPresetForm from "../VideoCustomPresetForm";
 import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
-import VideoPresetsPanel from "../VideoPresetsPanel";
 import RtpStats from "../RtpStats";
 
 export interface VideoSource {
@@ -14,20 +13,18 @@ export interface VideoSource {
   origin_y: number;
 }
 
-export interface VideoOutRequest {
-  num_sources: number;
-  sources: VideoSource[];
-}
-
 interface VideoOutResponse {
   success: boolean;
 }
 
-interface VideoOutResponse {
-  success: boolean;
+type Preset = {
+  id: string;
+  name: string;
 }
+
 const VideoControls: React.FC = () => {
   const { ros, connectionStatus: rosStatus } = useROS();
+  const [presets, setPresets] = useState<Preset[]>([]);
 
   const triggerIFrame = () => {
     if (!ros || rosStatus !== "connected") return;
@@ -51,23 +48,6 @@ const VideoControls: React.FC = () => {
     console.log(`Setting bitrate to: ${bitrate} bps`);
   };
 
-  const newPreset = (presetName: string, camRequest: VideoOutRequest) => {
-    if (!ros || rosStatus !== "connected") return;
-
-    const startVideoSrv = new ROSLIB.Service({
-      ros,
-      name: "/start_video",
-      serviceType: "interfaces/srv/VideoOut",
-    });
-
-    startVideoSrv.callService(
-      new ROSLIB.ServiceRequest(camRequest),
-      (response: VideoOutResponse) => {
-        console.log(response.success ? "Success" : "Failed");
-      },
-    );
-  };
-
   const onRestart = () => {
     if (!ros || rosStatus !== "connected") return;
     const topic = new ROSLIB.Topic({
@@ -78,6 +58,7 @@ const VideoControls: React.FC = () => {
     topic.publish(new ROSLIB.Message({}));
     console.log("Stream restart triggered");
   };
+
   const callVideoCaptureService = (serviceName: string, filename: string = "") => {
     if (!ros || rosStatus !== "connected") return;
 
@@ -155,6 +136,43 @@ const VideoControls: React.FC = () => {
     console.log(`Setting framerate to: ${framerate} fps`);
   };
 
+  const setPreset = (id: string) => {
+    if (!ros || rosStatus !== "connected") return;
+    const setPresetClient = new ROSLIB.Service({
+      ros,
+      name: "/start_video",
+      serviceType: "interfaces/srv/VideoOut",
+    });
+    const request = new ROSLIB.ServiceRequest({ name: id });
+    setPresetClient.callService(request, (result: VideoOutResponse) => {
+      if (result.success) {
+        console.log(`Preset successfully set to ${id}`);
+      } else {
+        console.error("Failed to set preset", result);
+      }
+    });
+    console.log(`Setting preset to: ${id}`);
+  };
+
+  const newPreset = (name: string, sources: VideoSource[]) => {
+    if (!ros || rosStatus !== "connected") return;
+    const setPresetClient = new ROSLIB.Service({
+      ros,
+      name: "/input_node/new_preset",
+      serviceType: "interfaces/srv/VideoPreset",
+    });
+    const request = new ROSLIB.ServiceRequest({ id: name.replaceAll(/\s/g, ''), name: name, sources: sources });
+    setPresetClient.callService(request, (result: VideoOutResponse) => {
+      if (!result.success) {
+        console.log("Added new preset:", name);
+        setPresets((prev) => ([...prev, { id: name.replaceAll(/\s/g, ''), name: name }]))
+      } else {
+        console.error("Failed to add preset:", result);
+      }
+    });
+    console.log("Adding new preset:", name);
+  };
+
   const connected = !!ros && rosStatus === "connected";
   // Shift + s for snapshot 
   useEffect(() => {
@@ -180,6 +198,32 @@ const VideoControls: React.FC = () => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [connected]);
+
+  useEffect(() => {
+    if (!ros) {
+      console.error("ROS connection is not established.");
+      return;
+    }
+    const getParamsClient = new ROSLIB.Service({
+      ros: ros,
+      name: "/input_node/get_parameters",
+      serviceType: "rcl_interfaces/srv/GetParameters", // adjust service type if it's differently named
+    });
+
+    const request = new ROSLIB.ServiceRequest({ names: ["presets"] });
+    getParamsClient.callService(request, (response) => {
+      if (response) {
+        const namesRequest = new ROSLIB.ServiceRequest({ names: response.values[0].string_array_value.map((name: string) => (name + ".name"))});
+        getParamsClient.callService(namesRequest, (namesResponse) => {
+          var newPresets: Preset[] = [];
+          for (const [idx, i] of namesResponse.values.entries()) {
+            newPresets.push({ id: response.values[0].string_array_value[idx], name: i.string_value })
+          }
+          setPresets(newPresets);
+        });
+      }
+    });
+  }, [ros]);
 
   const buttonStyle = (enabled: boolean) => ({
     border: "1px solid #444",
@@ -274,14 +318,32 @@ const VideoControls: React.FC = () => {
             </div>
 
             <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid #444" }}>
-              <VideoPresetsPanel onPresetSelect={(name, preset) => newPreset(name, preset)} />
+              <div
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "0.5rem",
+                }}
+              >
+                {presets.map(({ id, name }) => (
+                  <button
+                    key={id}
+                    disabled={!connected}
+                    style={buttonStyle(connected)}
+                    onClick={() => setPreset(id)}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <RtpStats />
         </div>
 
         <div style={{ height: "100%", overflow: "auto", flex: 1, minWidth: 0 }}>
-          <VideoCustomPresetForm onSubmit={(preset) => newPreset("Custom", preset)} />
+          <VideoCustomPresetForm onSubmit={(id, sources) => newPreset(id, sources)} />
         </div>
       </div>
     </div>
