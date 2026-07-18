@@ -1,24 +1,26 @@
-FROM node:20-alpine
+# Build stage
+FROM node:20-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
+RUN npm ci --legacy-peer-deps
 
-# Install dependencies (all, including dev for build)
-RUN npm install --legacy-peer-deps
-
-# Copy rest of the source code
-COPY src ./src
-COPY public ./public
-COPY next* ./
-COPY tsconfig.json ./
+COPY . .
 
 RUN npm run build
 
-# Expose default SSR port
+# Runtime stage
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
+
 EXPOSE 3000
 
-# Start the SSR app
-CMD ["npm", "run", "start"]
+CMD ["node", "server.js"]
