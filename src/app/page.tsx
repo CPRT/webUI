@@ -116,33 +116,102 @@ const HomePage = () => {
   return (
     <Layout>
       <div className="home">
-        {names.map((name, idx) => (
-          <a key={name} href={"/dashboard?layout=" + encodeURIComponent(JSON.stringify(layouts[idx]))} style={{ borderColor: colors[idx] }}>{name}</a>
-        ))}
+        <div className="preset-section">
+          <h1>Dashboard Presets</h1>
+
+          <div className="preset-links">
+            {names.map((name, idx) => (
+              <a
+                key={name}
+                href={"/dashboard?layout=" + encodeURIComponent(JSON.stringify(layouts[idx]))}
+                style={{
+                  borderColor: colors[idx],
+                  '--hover-color': colors[idx],
+                } as React.CSSProperties}
+              >
+                {name}
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div className="tool-section">
+          <h1>Tools</h1>
+
+          <a href="/launch" >
+            Launch
+          </a>
+          <a href="http://192.168.0.2">
+            Base Station AP
+          </a>
+          <a href="http://192.168.0.3">
+            Rover AP
+          </a>
+        </div>
       </div>
-      <style jsx >{`
+
+      <style jsx>{`
         .home {
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
           height: 100%;
           font-weight: bold;
         }
 
+        .preset-section,
+        .tool-section {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .preset-links {
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          align-items: center;
+        }
+
+        h1 {
+          color: #222;
+          margin: 10px;
+          text-align: center;
+        }
+
+        /* Dashboard preset boxes */
         .home a {
           height: 100px;
           width: 100px;
           margin: 10px;
+          display: flex;
+          justify-content: center;
+          align-items: center;
           text-align: center;
-          align-content: center;
           border-radius: 5px;
           border: 5px solid #fff;
           background: #222;
+          color: #fff;
+          transition: background 0.2s, color 0.2s;
         }
 
         .home a:hover {
           background: #000;
-          color: #fff;
+          color: var(--hover-color);
+          text-decoration: none;
+        }
+
+        .tool-section a {
+          height: 70px;
+          width: 220px;
+          border-radius: 8px;
+          border: 5px solid #b6b6b6;
+        }
+
+        .tool-section a:hover {
+          background: #000;
+          color: #b6b6b6;
           text-decoration: none;
         }
       `}</style>
