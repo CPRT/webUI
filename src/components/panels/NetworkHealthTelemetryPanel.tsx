@@ -3,16 +3,6 @@
 import React, { useEffect, useState } from "react";
 import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  LabelList,
-} from "recharts";
 
 const dotStyle = (up: boolean): React.CSSProperties => ({
   width: 12,
@@ -177,23 +167,45 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
 
   const toMbps = (bitsPerSecond: number) => bitsPerSecond / 1_000_000;
 
-  const throughputData = [
-    {
-      name: "TX",
-      Throughput: toMbps(stats.throughputTx),
-      Capacity: toMbps(stats.bandwidthTx),
-    },
-    {
-      name: "RX",
-      Throughput: toMbps(stats.throughputRx),
-      Capacity: toMbps(stats.bandwidthRx),
-    },
-  ];
-
   const telemetryRows = [
-    { name: "Signal Strength", value: stats.signalStrength.toFixed(2), unit: "dBm" },
-    { name: "Noise Floor", value: stats.noiseFloor.toFixed(2), unit: "dBm" },
-    { name: "CCQ TX", value: stats.ccqTx.toFixed(2), unit: "%" },
+    {
+      name: "Signal Strength",
+      value: stats.signalStrength.toFixed(2),
+      unit: "dBm",
+      good: stats.signalStrength > -70 && stats.signalStrength < -20,
+    },
+    {
+      name: "Noise Floor",
+      value: stats.noiseFloor.toFixed(2),
+      unit: "dBm",
+      good: stats.noiseFloor < -85,
+    },
+    {
+      name: "CCQ TX",
+      value: stats.ccqTx.toFixed(2),
+      unit: "%",
+      good: stats.ccqTx >= 90,
+    },
+    {
+      name: "Downlink",
+      value: `${toMbps(stats.throughputTx).toFixed(2)} / ${toMbps(
+        stats.bandwidthTx
+      ).toFixed(2)}`,
+      unit: "Mbps",
+      good:
+        stats.bandwidthTx > 0 &&
+        stats.throughputTx / stats.bandwidthTx < 0.8,
+    },
+    {
+      name: "Uplink",
+      value: `${toMbps(stats.throughputRx).toFixed(2)} / ${toMbps(
+        stats.bandwidthRx
+      ).toFixed(2)}`,
+      unit: "Mbps",
+      good:
+        stats.bandwidthRx > 0 &&
+        stats.throughputRx / stats.bandwidthRx < 0.8,
+    },
   ];
 
   return (
@@ -212,13 +224,13 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #333" }}>
+              <th style={{ textAlign: "left", padding: "4px 8px", borderBottom: "1px solid #333" }}>
                 Host
               </th>
-              <th style={{ textAlign: "right", padding: "8px", borderBottom: "1px solid #333" }}>
+              <th style={{ textAlign: "right", padding: "4px 8px", borderBottom: "1px solid #333" }}>
                 RTT (ms)
               </th>
-              <th style={{ textAlign: "center", padding: "8px", borderBottom: "1px solid #333" }}>
+              <th style={{ textAlign: "center", padding: "4px 8px", borderBottom: "1px solid #333" }}>
                 Status
               </th>
             </tr>
@@ -226,11 +238,11 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
           <tbody>
             {pingRows.map((r) => (
               <tr key={r.name}>
-                <td style={{ padding: "8px", borderBottom: "1px solid #222" }}>{r.name}</td>
-                <td style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #222" }}>
+                <td style={{ padding: "4px 8px", borderBottom: "1px solid #222" }}>{r.name}</td>
+                <td style={{ padding: "4px 8px", textAlign: "right", borderBottom: "1px solid #222" }}>
                   {r.rttMs === -1 ? "Offline" : r.rttMs}
                 </td>
-                <td style={{ padding: "8px", textAlign: "center", borderBottom: "1px solid #222" }}>
+                <td style={{ padding: "4px 8px", textAlign: "center", borderBottom: "1px solid #222" }}>
                   <span style={dotStyle(r.up)} />
                 </td>
               </tr>
@@ -243,74 +255,31 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th style={{ textAlign: "left", padding: "8px", borderBottom: "1px solid #333" }}>
+              <th style={{ textAlign: "left", padding: "4px 8px", borderBottom: "1px solid #333" }}>
                 Metric
               </th>
-              <th style={{ textAlign: "right", padding: "8px", borderBottom: "1px solid #333" }}>
+              <th style={{ textAlign: "right", padding: "4px 8px", borderBottom: "1px solid #333" }}>
                 Value
+              </th>
+              <th style={{ textAlign: "center", padding: "4px 8px", borderBottom: "1px solid #333" }}>
+                Status
               </th>
             </tr>
           </thead>
           <tbody>
             {telemetryRows.map((row) => (
               <tr key={row.name}>
-                <td style={{ padding: "8px", borderBottom: "1px solid #222" }}>{row.name}</td>
-                <td style={{ padding: "8px", textAlign: "right", borderBottom: "1px solid #222" }}>
+                <td style={{ padding: "4px 8px", borderBottom: "1px solid #222" }}>{row.name}</td>
+                <td style={{ padding: "4px 8px", textAlign: "right", borderBottom: "1px solid #222" }}>
                   {row.value} {row.unit}
+                </td>
+                <td style={{ padding: "4px 8px", textAlign: "center", borderBottom: "1px solid #222" }}>
+                  <span style={dotStyle(row.good)} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-
-      <div
-        style={{
-          background: "#1e1e1e",
-          color: "#f1f1f1",
-          padding: "1rem",
-          height: "100%",
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        <div style={{ height: "125px" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={throughputData} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-              <XAxis
-                type="number"
-                domain={[0, (dataMax: number) => Math.max(1, Math.floor(dataMax * 1.2))]}
-                stroke="#ccc"
-                tick={{ fill: "#ccc" }}
-              />
-              <YAxis
-                type="category"
-                dataKey="name"
-                stroke="#ccc"
-                tick={{ fill: "#ccc" }}
-              />
-              <Tooltip
-                contentStyle={{ backgroundColor: "#333", border: "none", color: "#fff" }}
-                labelStyle={{ color: "#ddd" }}
-              />
-              <Bar dataKey="Capacity" fill="#4b5563" barSize={24} />
-              <Bar dataKey="Throughput" fill="#3b82f6" barSize={16}>
-                <LabelList dataKey="Throughput" position="right" fill="#f1f1f1" />
-                {throughputData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={
-                      entry.Capacity > 0 && entry.Throughput / entry.Capacity > 0.85
-                        ? "#ef4444"
-                        : "#3b82f6"
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
       </div>
     </div>
   );
