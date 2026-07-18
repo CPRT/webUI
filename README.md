@@ -1,4 +1,4 @@
-# ROS2 Offline Dashboard
+# CPRT WebUI
 
 A web dashboard for monitoring and interacting with your ROS2-powered rover. This dashboard integrates various panels—including a map view, telemetry, video stream, node manager, waypoint list, and more—using a Mosaic layout for a flexible, modular experience.
 
