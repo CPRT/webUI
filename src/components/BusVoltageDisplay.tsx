@@ -25,11 +25,11 @@ const BusVoltageDisplay: React.FC = () => {
     if (!ros) return;
     const voltageTopic = new ROSLIB.Topic({
       ros,
-      name: '/bus_voltage',
-      messageType: 'std_msgs/Float32',
+      name: '/Left_front_wheel_joint/status',
+      messageType: 'ros_phoenix/msg/MotorStatus',
     });
     const handleVoltageMessage = (message: any) => {
-      setBusVoltage(Number(message.data));
+      setBusVoltage(Number(message.bus_voltage));
     };
     voltageTopic.subscribe(handleVoltageMessage);
   }, [ros]);
