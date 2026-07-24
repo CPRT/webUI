@@ -41,7 +41,7 @@ const VideoCustomPresetForm: React.FC<CustomPresetFormProps> = ({ onSubmit }) =>
     const preset: VideoOutRequest = {
       sources,
     };
-    onSubmit(preset); 
+    onSubmit(preset);
   };
   const fieldStyle: React.CSSProperties = {
     display: "flex",
