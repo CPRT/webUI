@@ -30,12 +30,22 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const logBoxRef = useRef<HTMLPreElement>(null);
 
-  // Sync status and clear logs/eventMsg when container ID changes (new container after restart)
+  // Keep local status in sync whenever the parent reports a new one
   useEffect(() => {
     setStatusState(option.status);
-    setLogs([]);
+  }, [option.status]);
+
+  // Keep the event message in sync independently
+  useEffect(() => {
     setEventMsg(externalEventMsg);
-  }, [option.id, externalEventMsg, option.status]);
+  }, [externalEventMsg]);
+
+  // Only clear logs when a genuinely NEW container starts (id changes) —
+  // not on every status change, so stopping a container doesn't wipe its
+  // logs before it has actually finished shutting down.
+  useEffect(() => {
+    setLogs([]);
+  }, [option.id]);
 
   const handleStart = async () => {
     await onStart(key);
@@ -128,7 +138,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
         </p>
       )}
   
-      {statusState !== 'stopped' && (
+      {(statusState !== 'stopped' || logs.length > 0) && (
         <div style={{ marginTop: 12 }}>
           <strong>Live Logs:</strong>
           <pre
