@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import CameraSourceDropdown from "./CameraSourceDropdown";
-import { VideoSource } from "./panels/VideoControls";
+import { VideoOutRequest, VideoSource } from "./panels/VideoControls";
 
 
 interface CustomPresetFormProps {
-  onSubmit: (id: string, sources: VideoSource[]) => void;
+  onSubmit: (preset: VideoOutRequest) => void;
 }
 
 const VideoCustomPresetForm: React.FC<CustomPresetFormProps> = ({ onSubmit }) => {
@@ -38,7 +38,10 @@ const VideoCustomPresetForm: React.FC<CustomPresetFormProps> = ({ onSubmit }) =>
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit("Custom", sources);
+    const preset: VideoOutRequest = {
+      sources,
+    };
+    onSubmit(preset); 
   };
   const fieldStyle: React.CSSProperties = {
     display: "flex",

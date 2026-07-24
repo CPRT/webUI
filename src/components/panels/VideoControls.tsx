@@ -4,6 +4,7 @@ import VideoCustomPresetForm from "../VideoCustomPresetForm";
 import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
 import RtpStats from "../RtpStats";
+import toast from "react-hot-toast";
 
 export interface VideoSource {
   name: string;
@@ -13,18 +14,18 @@ export interface VideoSource {
   origin_y: number;
 }
 
+export interface VideoOutRequest {
+  sources: VideoSource[];
+}
+
 interface VideoOutResponse {
   success: boolean;
 }
 
-type Preset = {
-  id: string;
-  name: string;
-}
-
 const VideoControls: React.FC = () => {
   const { ros, connectionStatus: rosStatus } = useROS();
-  const [presets, setPresets] = useState<Preset[]>([]);
+  const [presets, setPresets] = useState<string[]>([]);
+  const [customSources, setCustomSources] = useState<VideoOutRequest>({ sources: []});
 
   const triggerIFrame = () => {
     if (!ros || rosStatus !== "connected") return;
@@ -136,42 +137,46 @@ const VideoControls: React.FC = () => {
     console.log(`Setting framerate to: ${framerate} fps`);
   };
 
-  const setPreset = (id: string) => {
+  const setPreset = (name: string) => {
     if (!ros || rosStatus !== "connected") return;
-    const setPresetClient = new ROSLIB.Service({
+    if (name === "Custom") {
+      callCustom(customSources);
+    }else {
+      const setPresetClient = new ROSLIB.Service({
+        ros,
+        name: "/request_preset",
+        serviceType: "interfaces/srv/VideoPreset",
+      })
+      const request = new ROSLIB.ServiceRequest({ name: name });
+      setPresetClient.callService(request, (response) => {
+        if (!response.success) {
+          toast.error("Failed to select preset: " + name)
+        }
+      })
+    }
+  };
+
+  const customPreset = (sources: VideoOutRequest) => {
+    if (!presets.includes("Custom")) {
+      setPresets((prev) => [...prev, "Custom"]);
+    }
+
+    setCustomSources(sources);
+    callCustom(sources);
+  }
+
+  const callCustom = (sources: VideoOutRequest) => {
+    if (!ros || rosStatus !== "connected") return;
+    const setCamClient = new ROSLIB.Service({
       ros,
       name: "/start_video",
       serviceType: "interfaces/srv/VideoOut",
     });
-    const request = new ROSLIB.ServiceRequest({ name: id });
-    setPresetClient.callService(request, (result: VideoOutResponse) => {
-      if (result.success) {
-        console.log(`Preset successfully set to ${id}`);
-      } else {
-        console.error("Failed to set preset", result);
-      }
+    const request = new ROSLIB.ServiceRequest(sources);
+    setCamClient.callService(request, (response: VideoOutResponse) => {
+      console.log("Setting custom preset:", response.success ? "Succeeded" : "Failed");
     });
-    console.log(`Setting preset to: ${id}`);
-  };
-
-  const newPreset = (name: string, sources: VideoSource[]) => {
-    if (!ros || rosStatus !== "connected") return;
-    const setPresetClient = new ROSLIB.Service({
-      ros,
-      name: "/input_node/new_preset",
-      serviceType: "interfaces/srv/VideoPreset",
-    });
-    const request = new ROSLIB.ServiceRequest({ id: name.replaceAll(/\s/g, ''), name: name, sources: sources });
-    setPresetClient.callService(request, (result: VideoOutResponse) => {
-      if (!result.success) {
-        console.log("Added new preset:", name);
-        setPresets((prev) => ([...prev, { id: name.replaceAll(/\s/g, ''), name: name }]))
-      } else {
-        console.error("Failed to add preset:", result);
-      }
-    });
-    console.log("Adding new preset:", name);
-  };
+  }
 
   const connected = !!ros && rosStatus === "connected";
   // Shift + s for snapshot 
@@ -204,23 +209,16 @@ const VideoControls: React.FC = () => {
       console.error("ROS connection is not established.");
       return;
     }
-    const getParamsClient = new ROSLIB.Service({
+    const getPresetsClient = new ROSLIB.Service({
       ros: ros,
-      name: "/input_node/get_parameters",
-      serviceType: "rcl_interfaces/srv/GetParameters", // adjust service type if it's differently named
+      name: "/list_presets",
+      serviceType: "unterfaces/srv/GetPresets",
     });
 
-    const request = new ROSLIB.ServiceRequest({ names: ["presets"] });
-    getParamsClient.callService(request, (response) => {
+    const request = new ROSLIB.ServiceRequest({});
+    getPresetsClient.callService(request, (response) => {
       if (response) {
-        const namesRequest = new ROSLIB.ServiceRequest({ names: response.values[0].string_array_value.map((name: string) => (name + ".name"))});
-        getParamsClient.callService(namesRequest, (namesResponse) => {
-          var newPresets: Preset[] = [];
-          for (const [idx, i] of namesResponse.values.entries()) {
-            newPresets.push({ id: response.values[0].string_array_value[idx], name: i.string_value })
-          }
-          setPresets(newPresets);
-        });
+        setPresets(response.presets);
       }
     });
   }, [ros]);
@@ -326,12 +324,12 @@ const VideoControls: React.FC = () => {
                   gap: "0.5rem",
                 }}
               >
-                {presets.map(({ id, name }) => (
+                {presets.map((name) => (
                   <button
-                    key={id}
+                    key={name}
                     disabled={!connected}
                     style={buttonStyle(connected)}
-                    onClick={() => setPreset(id)}
+                    onClick={() => setPreset(name)}
                   >
                     {name}
                   </button>
@@ -343,7 +341,7 @@ const VideoControls: React.FC = () => {
         </div>
 
         <div style={{ height: "100%", overflow: "auto", flex: 1, minWidth: 0 }}>
-          <VideoCustomPresetForm onSubmit={(id, sources) => newPreset(id, sources)} />
+          <VideoCustomPresetForm onSubmit={customPreset} />
         </div>
       </div>
     </div>
