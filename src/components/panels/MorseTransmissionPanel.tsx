@@ -20,7 +20,7 @@ const MorseTransmissionPanel: React.FC = () => {
     topicRef.current = new ROSLIB.Topic({
       ros,
       name: '/morse_transmission',
-      messageType: 'std_msgs/String',
+      messageType: 'std_msgs/msg/String',
     });
 
     return () => {
@@ -73,7 +73,6 @@ const MorseTransmissionPanel: React.FC = () => {
           height: 100%;
           display: flex;
           flex-direction: column;
-          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .controls {
           display: flex;
@@ -85,8 +84,7 @@ const MorseTransmissionPanel: React.FC = () => {
           color: #f1f1f1;
           border: 1px solid #444;
           border-radius: 6px;
-          padding: 0.75rem;
-          font-size: 1rem;
+          padding: 0.5rem;
           outline: none;
         }
         .input:focus {
@@ -99,11 +97,10 @@ const MorseTransmissionPanel: React.FC = () => {
         .btn {
           background: #0070f3;
           color: #f1f1f1;
-          padding: 0.75rem 1.25rem;
+          padding: 0.5rem 1rem;
           border: none;
           border-radius: 6px;
           cursor: pointer;
-          font-size: 1rem;
         }
         .btn:hover:enabled {
           background: #005fcc;
@@ -114,9 +111,8 @@ const MorseTransmissionPanel: React.FC = () => {
           opacity: 0.8;
         }
         .last-sent {
-          margin-top: 1rem;
+          margin-top: 0.5rem;
           color: #d6d6d6;
-          font-size: 0.9rem;
         }
       `}</style>
     </div>
