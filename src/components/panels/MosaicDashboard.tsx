@@ -27,6 +27,7 @@ import ArmControlPanel from './ArmControlPanel';
 import WebRTCClient from './WebRTCClient';
 import TimerPanel from './TimerPanel';
 import HeadlightControlPanel from './HeadlightControlPanel';
+import MorseTransmissionPanel from './MorseTransmissionPanel';
 
 import { ROVER_IP } from '@/constants';
 
@@ -49,6 +50,7 @@ type TileType =
   | 'webRTCClient'
   | 'timerPanel'
   | 'headlightControlPanel'
+  | 'morseTransmissionPanel'
   ;
 
 type TileId = `${TileType}:${number}`;
@@ -72,6 +74,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   webRTCClient: 'WebRTC Client',
   timerPanel: 'Multi-Timer',
   headlightControlPanel: 'Headlights',
+  morseTransmissionPanel: 'Morse Transmission',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -93,6 +96,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'webRTCClient',
   'timerPanel',
   'headlightControlPanel',
+  'morseTransmissionPanel',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -463,6 +467,13 @@ const MosaicDashboard: React.FC = () => {
         return (
           <MosaicWindow {...windowProps}>
             <HeadlightControlPanel />
+          </MosaicWindow>
+        );
+
+      case 'morseTransmissionPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <MorseTransmissionPanel />
           </MosaicWindow>
         );
       default:
