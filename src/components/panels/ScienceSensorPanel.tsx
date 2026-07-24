@@ -15,23 +15,23 @@ import {
   Legend,
 } from 'recharts';
 
-interface ScienceSensorReadings {
-  methane: number;
-  co2: number;
-  polarimeter: number;
-  temperature: number;
-  moisture: number;
+interface ADCPoint {
+  time: number;
+  adc1: number;
+  adc2: number;
+  adc3: number;
 }
 
-type SensorKey = keyof ScienceSensorReadings;
-
-interface Point {
+interface CO2Point {
   time: number;
-  methane: number;
   co2: number;
-  polarimeter: number;
+}
+
+type SensorKey = 'adc1' | 'adc2' | 'adc3' | 'co2';
+
+type Temp = {
   temperature: number;
-  moisture: number;
+  humidity: number;
 }
 
 const SENSOR_OPTIONS: {
@@ -41,8 +41,8 @@ const SENSOR_OPTIONS: {
   unit: string;
 }[] = [
   {
-    key: 'methane',
-    label: 'Methane',
+    key: 'adc1',
+    label: 'ADC 1',
     color: '#0070f3',
     unit: '',
   },
@@ -50,33 +50,29 @@ const SENSOR_OPTIONS: {
     key: 'co2',
     label: 'CO₂',
     color: '#28a745',
-    unit: '',
+    unit: 'ppm',
   },
   {
-    key: 'polarimeter',
-    label: 'Polarimeter',
+    key: 'adc2',
+    label: 'ADC 2',
     color: '#ff8800',
     unit: '',
   },
   {
-    key: 'temperature',
-    label: 'Temperature',
+    key: 'adc3',
+    label: 'ADC 3',
     color: '#ff4d4d',
     unit: '°C',
-  },
-  {
-    key: 'moisture',
-    label: 'Moisture',
-    color: '#b84dff',
-    unit: '%',
   },
 ];
 
 const ScienceSensorPanel: React.FC = () => {
   const { ros } = useROS();
 
-  const [data, setData] = useState<Point[]>([]);
-  const [selectedSensor, setSelectedSensor] = useState<SensorKey>('methane');
+  const [adc, setAdc] = useState<ADCPoint[]>([]);
+  const [co2, setCo2] = useState<CO2Point[]>([]);
+  const [temp, setTemp] = useState<Temp>();
+  const [selectedSensor, setSelectedSensor] = useState<SensorKey>('adc1');
   const [windowSize, setWindowSize] = useState(30);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,37 +84,84 @@ const ScienceSensorPanel: React.FC = () => {
   useEffect(() => {
     if (!ros) return;
 
-    const sensorTopic = new ROSLIB.Topic({
+    const adcTopic = new ROSLIB.Topic({
       ros,
-      name: '/science_sensor_readings',
-      messageType: 'interfaces/msg/ScienceSensorReadings',
+      name: '/science/adc',
+      messageType: 'interfaces/msg/ScienceADC',
     });
 
     const handleSensorReading = (msg: any) => {
-      const newPoint: Point = {
+      const newPoint: ADCPoint = {
         time: Date.now(),
-        methane: Number(msg.methane),
-        co2: Number(msg.co2),
-        polarimeter: Number(msg.polarimeter),
-        temperature: Number(msg.temperature),
-        moisture: Number(msg.moisture),
+        adc1: msg.adc1,
+        adc2: msg.adc2,
+        adc3: msg.adc3,
       };
 
-      setData((prev) => {
+      setAdc((prev) => {
         const updated = [...prev, newPoint];
         return updated.length > windowSize ? updated.slice(-windowSize) : updated;
       });
     };
 
-    sensorTopic.subscribe(handleSensorReading);
+    adcTopic.subscribe(handleSensorReading);
 
     return () => {
-      sensorTopic.unsubscribe(handleSensorReading);
+      adcTopic.unsubscribe(handleSensorReading);
     };
   }, [ros, windowSize]);
 
-  const latestValue =
-    data.length > 0 ? data[data.length - 1][selectedSensor] : null;
+  useEffect(() => {
+    if (!ros) return;
+
+    const co2Topic = new ROSLIB.Topic({
+      ros,
+      name: '/science/co2',
+      messageType: 'std_msgs/msg/UInt16',
+    });
+
+    const handleSensorReading = (msg: any) => {
+      const newPoint: CO2Point = {
+        time: Date.now(),
+        co2: msg.data,
+      };
+
+      setCo2((prev) => {
+        const updated = [...prev, newPoint];
+        return updated.length > windowSize ? updated.slice(-windowSize) : updated;
+      });
+    };
+
+    co2Topic.subscribe(handleSensorReading);
+
+    return () => {
+      co2Topic.unsubscribe(handleSensorReading);
+    };
+  }, [ros, windowSize]);
+  
+  useEffect(() => {
+    if (!ros) return;
+
+    const tempTopic = new ROSLIB.Topic({
+      ros,
+      name: '/science/temp',
+      messageType: 'interfaces/msg/DHT22',
+    });
+
+    const handleTempReading = (msg: any) => {
+      setTemp(msg);
+    };
+
+    tempTopic.subscribe(handleTempReading);
+
+    return () => {
+      tempTopic.unsubscribe(handleTempReading);
+    };
+  }, [ros]);
+
+  const latestValue = selectedSensor == 'co2' ? 
+      (co2.length > 0 ? co2[co2.length - 1][selectedSensor] : null)
+    : (adc.length > 0 ? adc[adc.length - 1][selectedSensor] : null);
 
   const formatTime = (time: number) =>
     new Date(time).toLocaleTimeString([], {
@@ -127,10 +170,6 @@ const ScienceSensorPanel: React.FC = () => {
     });
 
   const formatValue = (value: number) => {
-    if (selectedSensor === 'temperature' || selectedSensor === 'moisture') {
-      return `${value.toFixed(1)}${selectedOption.unit}`;
-    }
-
     return `${value.toFixed(0)}${selectedOption.unit}`;
   };
 
@@ -152,9 +191,9 @@ const ScienceSensorPanel: React.FC = () => {
       <div className="header">
         <div>
           <h3>Science Sensor Reading</h3>
-          <p className="sensor-name">{selectedOption.label}</p>
+          <p className="sensor-name">Temperature: {temp?.temperature?.toFixed(1)} deg C    Humidity: {temp?.humidity?.toFixed(1)}%</p>
           <p className="latest-value">
-            {latestValue !== null ? formatValue(latestValue) : '--'}
+            {selectedOption.label}: {latestValue !== null ? formatValue(latestValue) : '--'}
           </p>
         </div>
 
@@ -187,7 +226,7 @@ const ScienceSensorPanel: React.FC = () => {
       <div className="chart">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
-            data={data}
+            data={selectedSensor == 'co2' ? co2 : adc}
             margin={{ top: 10, right: 20, bottom: 5, left: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#2f2f2f" />
