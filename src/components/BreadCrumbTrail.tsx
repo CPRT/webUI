@@ -168,7 +168,7 @@ const BreadcrumbTrail: React.FC = () => {
         </div>
         <div style={{ marginBottom: '0.125rem' }}>
           <strong>Antenna Location:</strong>
-          <br/>
+          <br />
             {/* TODO: Is this enough percision? */}
             Lat: {antennaLoc[0].toFixed(6)}
             <br />
