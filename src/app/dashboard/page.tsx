@@ -1,16 +1,16 @@
-"use client";
-
-import dynamic from 'next/dynamic';
 import Layout from '@/components/Layout';
+import type { Metadata } from "next";
+import MosaicDashboardClient from "./MosaicDashboardClient";
 
-const MosaicDashboard = dynamic(() => import('@/components/panels/MosaicDashboard'), { ssr: false });
-
-const Dashboard = () => {
-  return (
-    <Layout>
-      <MosaicDashboard />
-    </Layout>
-  );
+export const metadata: Metadata = {
+  title: "Dashboard - CPRT webUI",
+  description: "Carleton Planetary Robotics Team's ROS2 Web Interface",
 };
 
-export default Dashboard;
+export default function Dashboard() {
+  return (
+    <Layout>
+      <MosaicDashboardClient />
+    </Layout>
+  );
+}

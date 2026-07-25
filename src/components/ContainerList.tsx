@@ -3,15 +3,16 @@ import React, { useEffect, useState, useRef } from 'react';
 import ContainerCard, { ContainerOption } from './ContainerCard';
 import SetResetPanel from './SetResetPanel';
 import toast from "react-hot-toast";
+import { ROVER_IP } from '@/constants';
 
 
 const dockersToPull = [
-  'cprtsoftware/rover:arm64',
+  'cprtsoftware/rover:latest',
   'cprtsoftware/web-ui:latest',
   'cprtsoftware/container-launcher:latest',
 ];
 
-const DEFAULT_API_BASE = 'http://localhost:8080';
+const DEFAULT_API_BASE = `http://${ROVER_IP}:8080`;
 
 const ContainerList: React.FC = () => {
   const [options, setOptions] = useState<ContainerOption[]>([]);

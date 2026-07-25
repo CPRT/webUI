@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import ROSLIB from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 import html2canvas from 'html2canvas';
@@ -12,38 +12,96 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
 } from 'recharts';
 
-interface Props {
-  topic: string;
-  label: string;
-  color?: string;
+interface ScienceSensorReadings {
+  methane: number;
+  co2: number;
+  polarimeter: number;
+  temperature: number;
+  moisture: number;
 }
+
+type SensorKey = keyof ScienceSensorReadings;
 
 interface Point {
   time: number;
-  value: number;
+  methane: number;
+  co2: number;
+  polarimeter: number;
+  temperature: number;
+  moisture: number;
 }
 
-const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) => {
+const SENSOR_OPTIONS: {
+  key: SensorKey;
+  label: string;
+  color: string;
+  unit: string;
+}[] = [
+  {
+    key: 'methane',
+    label: 'Methane',
+    color: '#0070f3',
+    unit: '',
+  },
+  {
+    key: 'co2',
+    label: 'CO₂',
+    color: '#28a745',
+    unit: '',
+  },
+  {
+    key: 'polarimeter',
+    label: 'Polarimeter',
+    color: '#ff8800',
+    unit: '',
+  },
+  {
+    key: 'temperature',
+    label: 'Temperature',
+    color: '#ff4d4d',
+    unit: '°C',
+  },
+  {
+    key: 'moisture',
+    label: 'Moisture',
+    color: '#b84dff',
+    unit: '%',
+  },
+];
+
+const ScienceSensorPanel: React.FC = () => {
   const { ros } = useROS();
+
   const [data, setData] = useState<Point[]>([]);
+  const [selectedSensor, setSelectedSensor] = useState<SensorKey>('methane');
   const [windowSize, setWindowSize] = useState(30);
+
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = useMemo(() => {
+    return SENSOR_OPTIONS.find((option) => option.key === selectedSensor)!;
+  }, [selectedSensor]);
 
   useEffect(() => {
     if (!ros) return;
 
-    const rosTopic = new ROSLIB.Topic({
+    const sensorTopic = new ROSLIB.Topic({
       ros,
-      name: topic,
-      messageType: 'std_msgs/msg/UInt16',
+      name: '/science_sensor_readings',
+      messageType: 'interfaces/msg/ScienceSensorReadings',
     });
 
-    const handleMsg = (msg: any) => {
+    const handleSensorReading = (msg: any) => {
       const newPoint: Point = {
         time: Date.now(),
-        value: Number(msg.data),
+        methane: Number(msg.methane),
+        co2: Number(msg.co2),
+        polarimeter: Number(msg.polarimeter),
+        temperature: Number(msg.temperature),
+        moisture: Number(msg.moisture),
       };
 
       setData((prev) => {
@@ -52,9 +110,29 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
       });
     };
 
-    rosTopic.subscribe(handleMsg);
-    return () => rosTopic.unsubscribe(handleMsg);
-  }, [ros, topic, windowSize]);
+    sensorTopic.subscribe(handleSensorReading);
+
+    return () => {
+      sensorTopic.unsubscribe(handleSensorReading);
+    };
+  }, [ros, windowSize]);
+
+  const latestValue =
+    data.length > 0 ? data[data.length - 1][selectedSensor] : null;
+
+  const formatTime = (time: number) =>
+    new Date(time).toLocaleTimeString([], {
+      minute: '2-digit',
+      second: '2-digit',
+    });
+
+  const formatValue = (value: number) => {
+    if (selectedSensor === 'temperature' || selectedSensor === 'moisture') {
+      return `${value.toFixed(1)}${selectedOption.unit}`;
+    }
+
+    return `${value.toFixed(0)}${selectedOption.unit}`;
+  };
 
   const downloadPNG = async () => {
     if (!containerRef.current) return;
@@ -64,26 +142,34 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
     });
 
     const link = document.createElement('a');
-    link.download = `${label}.png`;
+    link.download = `science-${selectedSensor}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
-
-  const formatTime = (time: number) =>
-    new Date(time).toLocaleTimeString([], {
-      minute: '2-digit',
-      second: '2-digit',
-    });
 
   return (
     <div className="panel" ref={containerRef}>
       <div className="header">
         <div>
-          <h3>{label}</h3>
-          <p>{data.length > 0 ? data[data.length - 1].value : '--'}</p>
+          <h3>Science Sensor Reading</h3>
+          <p className="sensor-name">{selectedOption.label}</p>
+          <p className="latest-value">
+            {latestValue !== null ? formatValue(latestValue) : '--'}
+          </p>
         </div>
 
         <div className="controls">
+          <select
+            value={selectedSensor}
+            onChange={(e) => setSelectedSensor(e.target.value as SensorKey)}
+          >
+            {SENSOR_OPTIONS.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
           <select
             value={windowSize}
             onChange={(e) => setWindowSize(Number(e.target.value))}
@@ -92,7 +178,6 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
             <option value={30}>30 samples</option>
             <option value={60}>60 samples</option>
             <option value={120}>120 samples</option>
-            <option value={240}>240 samples</option>
           </select>
 
           <button onClick={downloadPNG}>PNG</button>
@@ -119,14 +204,19 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
             />
 
             <YAxis
-              domain={[0, 'auto']}
+              domain={['auto', 'auto']}
+              tickFormatter={(value) => formatValue(Number(value))}
               tick={{ fill: '#aaa', fontSize: 10 }}
               axisLine={{ stroke: '#444' }}
               tickLine={{ stroke: '#444' }}
-              width={45}
+              width={55}
             />
 
             <Tooltip
+              formatter={(value: number) => [
+                formatValue(Number(value)),
+                selectedOption.label,
+              ]}
               labelFormatter={(value) => formatTime(Number(value))}
               contentStyle={{
                 background: '#222',
@@ -136,14 +226,17 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
               }}
             />
 
+            <Legend wrapperStyle={{ color: '#f1f1f1', fontSize: 12 }} />
+
             <Line
               type="linear"
-              dataKey="value"
-              stroke={color}
+              dataKey={selectedSensor}
+              stroke={selectedOption.color}
               strokeWidth={2}
-              dot={true}
+              dot={false}
               isAnimationActive={false}
               activeDot={{ r: 3 }}
+              name={selectedOption.label}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -159,6 +252,7 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
           flex-direction: column;
           height: 100%;
           border: 1px solid #2a2a2a;
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .header {
@@ -176,17 +270,25 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
           color: #eee;
         }
 
-        p {
+        .sensor-name {
           margin: 0.25rem 0 0;
-          font-size: 1.4rem;
+          font-size: 0.8rem;
+          color: #aaa;
+        }
+
+        .latest-value {
+          margin: 0.2rem 0 0;
+          font-size: 1.5rem;
           font-weight: 700;
-          color: ${color};
+          color: ${selectedOption.color};
         }
 
         .controls {
           display: flex;
           gap: 0.5rem;
           align-items: center;
+          flex-wrap: wrap;
+          justify-content: flex-end;
         }
 
         select,
@@ -214,4 +316,4 @@ const TelemetryGraph: React.FC<Props> = ({ topic, label, color = '#4da3ff' }) =>
   );
 };
 
-export default TelemetryGraph;
+export default ScienceSensorPanel;

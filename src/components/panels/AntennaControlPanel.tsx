@@ -66,9 +66,9 @@ const AntennaControlPanel: React.FC = () => {
     // Publish immediately, then every 100ms
     const publishNow = () => {
       const value = computeValue();
-      const status = enabled;
+      const manual_mode = !enabled;
       antValTopicRef.current?.publish(new ROSLIB.Message({ data: value }));
-      antStatusTopicRef.current?.publish(new ROSLIB.Message({ data: status }));
+      antStatusTopicRef.current?.publish(new ROSLIB.Message({ data: manual_mode }));
     };
 
     publishNow();

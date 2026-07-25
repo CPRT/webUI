@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import CameraSourceDropdown from "./CameraSourceDropdown";
-import { VideoOutRequest, VideoSource } from "./WebRTCClientPage";
+import { VideoOutRequest, VideoSource } from "./panels/VideoControls";
 
 
 interface CustomPresetFormProps {

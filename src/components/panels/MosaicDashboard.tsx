@@ -18,11 +18,18 @@ import GasSensor from './GasSensor';
 import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
+import NodeStatusPanel from './NodeStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
-import { CO2Graph, MethaneGraph } from './ScienceGraphPanels';
+import ScienceSensorPanel from './ScienceSensorPanel';
 import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
+import WebRTCClient from './WebRTCClient';
+import TimerPanel from './TimerPanel';
+import HeadlightControlPanel from './HeadlightControlPanel';
+import MorseTransmissionPanel from './MorseTransmissionPanel';
+
+import { ROVER_IP } from '@/constants';
 
 type TileType =
   | 'mapView'
@@ -33,13 +40,18 @@ type TileType =
   | 'orientationDisplay'
   | 'goalSetter'
   | 'networkHealthMonitor'
-  | 'MotorStatusPanel'
+  | 'motorStatusPanel'
+  | 'nodeStatusPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
-  | 'co2Graph'
-  | 'methaneGraph'
+  | 'scienceSensorPanel'
   | 'pdbRails'
-  | 'armControlPanel';
+  | 'armControlPanel'
+  | 'webRTCClient'
+  | 'timerPanel'
+  | 'headlightControlPanel'
+  | 'morseTransmissionPanel'
+  ;
 
 type TileId = `${TileType}:${number}`;
 
@@ -52,13 +64,17 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   orientationDisplay: 'Rover Orientation',
   goalSetter: 'Nav2',
   networkHealthMonitor: 'Connection Health',
-  MotorStatusPanel: 'Motor Status',
+  motorStatusPanel: 'Motor Status',
+  nodeStatusPanel: 'Node Status',
   antennaControlPanel: 'Antenna Control',
   scienceControlPanel: 'Science Motor Control',
-  co2Graph: 'CO2 Graph',
-  methaneGraph: 'Methane Graph',
+  scienceSensorPanel: 'Science Sensor Readouts',
   pdbRails: 'PDB Rails',
   armControlPanel: 'Arm Control',
+  webRTCClient: 'WebRTC Client',
+  timerPanel: 'Multi-Timer',
+  headlightControlPanel: 'Headlights',
+  morseTransmissionPanel: 'Morse Transmission',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -70,13 +86,17 @@ const ALL_TILE_TYPES: TileType[] = [
   'waypointList',
   'gasSensor',
   'goalSetter',
-  'MotorStatusPanel',
+  'motorStatusPanel',
+  'nodeStatusPanel',
   'antennaControlPanel',
   'scienceControlPanel',
-  'co2Graph',
-  'methaneGraph',
+  'scienceSensorPanel',
   'pdbRails',
   'armControlPanel',
+  'webRTCClient',
+  'timerPanel',
+  'headlightControlPanel',
+  'morseTransmissionPanel',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -129,12 +149,17 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
           first: {
             direction: 'column',
             first: makeTileId('antennaControlPanel'),
-            second: makeTileId('MotorStatusPanel'),
+            second: {
+              direction: 'column',
+              first: makeTileId('motorStatusPanel'),
+              second: makeTileId('nodeStatusPanel'),
+              splitPercentage: 50,
+            },
             splitPercentage: 35,
           },
           second: makeTileId('networkHealthMonitor'),
         },
-        second: makeTileId('rosMonitor'),
+        second: makeTileId('waypointList'),
         splitPercentage: 55,
       },
       splitPercentage: 55,
@@ -144,11 +169,11 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
       first: makeTileId('videoControls'),
       second: {
         direction: 'row',
-        first: makeTileId('waypointList'),
+        first: makeTileId('pdbRails'),
         second: {
           direction: 'row',
-          first: makeTileId('gasSensor'),
-          second: makeTileId('goalSetter'),
+          first: makeTileId('scienceSensorPanel'),
+          second: makeTileId('armControlPanel'),
         },
         splitPercentage: 50,
       },
@@ -380,12 +405,19 @@ const MosaicDashboard: React.FC = () => {
           </MosaicWindow>
         );
 
-      case 'MotorStatusPanel':
+      case 'motorStatusPanel':
         return (
           <MosaicWindow {...windowProps}>
             <MotorStatusPanel />
           </MosaicWindow>
         );
+      
+      case 'nodeStatusPanel':
+      return (
+        <MosaicWindow {...windowProps}>
+          <NodeStatusPanel />
+        </MosaicWindow>
+      );
 
       case 'antennaControlPanel':
         return (
@@ -399,18 +431,12 @@ const MosaicDashboard: React.FC = () => {
             <ScienceControlPanel />
           </MosaicWindow>
         );
-      case 'co2Graph':
+      case 'scienceSensorPanel':
         return(
           <MosaicWindow {...windowProps}>
-            <CO2Graph />
+            <ScienceSensorPanel />
           </MosaicWindow>
-        )
-      case 'methaneGraph':
-        return(
-          <MosaicWindow {...windowProps}>
-            <MethaneGraph />
-          </MosaicWindow>
-        )
+        );
       case 'pdbRails':
         return(
           <MosaicWindow {...windowProps}>
@@ -422,8 +448,34 @@ const MosaicDashboard: React.FC = () => {
           <MosaicWindow {...windowProps}>
             <ArmControlPanel />
           </MosaicWindow>
-        )
+        );
+      case 'webRTCClient':
+        return(
+          <MosaicWindow {...windowProps}>
+            <WebRTCClient
+              config={{ signalingUrl: `ws://${ROVER_IP}:8444` }}
+            />
+          </MosaicWindow>
+        );
+      case 'timerPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <TimerPanel />
+          </MosaicWindow>
+        );
+      case 'headlightControlPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <HeadlightControlPanel />
+          </MosaicWindow>
+        );
 
+      case 'morseTransmissionPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <MorseTransmissionPanel />
+          </MosaicWindow>
+        );
       default:
         return <div>Unknown tile</div>;
     }

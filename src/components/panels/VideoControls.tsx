@@ -1,11 +1,27 @@
 'use client';
-import React from "react";
+import React, { useEffect } from "react";
 import VideoCustomPresetForm from "../VideoCustomPresetForm";
 import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
 import VideoPresetsPanel from "../VideoPresetsPanel";
 import RtpStats from "../RtpStats";
-import type { VideoSource, VideoOutRequest } from "../WebRTCClientPage";
+
+export interface VideoSource {
+  name: string;
+  width: number;
+  height: number;
+  origin_x: number;
+  origin_y: number;
+}
+
+export interface VideoOutRequest {
+  num_sources: number;
+  sources: VideoSource[];
+}
+
+interface VideoOutResponse {
+  success: boolean;
+}
 
 interface VideoOutResponse {
   success: boolean;
@@ -140,6 +156,30 @@ const VideoControls: React.FC = () => {
   };
 
   const connected = !!ros && rosStatus === "connected";
+  // Shift + s for snapshot 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const isSnapshotShortcut =
+        event.shiftKey && event.key.toLowerCase() === "s";
+
+      if (!isSnapshotShortcut) return;
+      if (event.repeat) return;
+
+      const target = event.target as HTMLElement | null;
+      const isEditableTarget =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        !!target?.isContentEditable;
+
+      if (isEditableTarget || !connected) return;
+
+      event.preventDefault();
+      onSnapshot();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [connected]);
 
   const buttonStyle = (enabled: boolean) => ({
     border: "1px solid #444",

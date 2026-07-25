@@ -1,4 +1,4 @@
-# ROS2 Offline Dashboard
+# CPRT WebUI
 
 A web dashboard for monitoring and interacting with your ROS2-powered rover. This dashboard integrates various panels—including a map view, telemetry, video stream, node manager, waypoint list, and more—using a Mosaic layout for a flexible, modular experience.
 
@@ -60,6 +60,12 @@ npm run start
 Access the dashboard at:  
 [http://localhost:3000/dashboard](http://localhost:3000/dashboard)  
 (or use the host IP of the machine running the web app).
+
+Connect ros topics (if not running on rover). Run from rover repo, then click connect on Dashboard:
+
+```
+ros2 run rosbridge_server rosbridge_websocket
+```
 
 ## Docker
 
