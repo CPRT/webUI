@@ -6,12 +6,12 @@ import { useROS } from '@/ros/ROSContext';
 
 const LABELS = [
   "12V #1",
-  "12V #2",
   "12V #3",
+  "12V #2",
   "12V #4",
   "5V #1",
-  "5V #2",
   "5V #3",
+  "5V #2",
 ];
 
 const PDBRailsPanel: React.FC = () => {
