@@ -57,17 +57,17 @@ type ServoMotorProps = {
 const DEFAULT_RAMP = 0;
 
 const motors: MotorConfig[] = [
-  { id: 0, name: 'Strip', defaultTime: 3.0, defaultDuty: 50 },
-  { id: 1, name: 'Resin Pump', defaultTime: 2.5, defaultDuty: 50 },
-  { id: 2, name: 'Polar', defaultTime: 1.5, defaultDuty: 50 },
-  { id: 3, name: 'Benedict', defaultTime: 2.5, defaultDuty: 50 },
-  { id: 4, name: 'Stirrer', defaultTime: 10.0, defaultDuty: 75 },
-  { id: 6, name: 'Heater', defaultTime: 10.0, defaultDuty: 75 },
+  { id: 1, name: 'Strip', defaultTime: 10.0, defaultDuty: 100 },
+  { id: 0, name: 'Resin Pump', defaultTime: 2.5, defaultDuty: 100 },
+  { id: 5, name: 'Polar', defaultTime: 1.5, defaultDuty: 100 },
+  { id: 4, name: 'Benedict', defaultTime: 2.5, defaultDuty: 100 },
+  { id: 2, name: 'Stirrer', defaultTime: 10.0, defaultDuty: 50 },
+  { id: 6, name: 'Heater', defaultTime: 20.0, defaultDuty: 75 },
 ]
 
 const servos: ServoConfig[] = [
   {
-    id: 3,
+    id: 2,
     name: 'Disk Servo',
     defaultPosition: 90,
     minPulseUs: 615,
