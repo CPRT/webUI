@@ -21,6 +21,7 @@ import MotorStatusPanel from './MotorStatusPanel';
 import NodeStatusPanel from './NodeStatusPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
+import ScienceDrillPanel from './ScienceDrillPanel';
 import ScienceSensorPanel from './ScienceSensorPanel';
 import PDBRailsPanel from './PDBRails';
 import ArmControlPanel from './ArmControlPanel';
@@ -44,6 +45,7 @@ type TileType =
   | 'nodeStatusPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
+  | 'scienceDrillPanel'
   | 'scienceSensorPanel'
   | 'pdbRails'
   | 'armControlPanel'
@@ -68,6 +70,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   nodeStatusPanel: 'Node Status',
   antennaControlPanel: 'Antenna Control',
   scienceControlPanel: 'Science Motor Control',
+  scienceDrillPanel: 'Science Drill Panel',
   scienceSensorPanel: 'Science Sensor Readouts',
   pdbRails: 'PDB Rails',
   armControlPanel: 'Arm Control',
@@ -90,6 +93,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'nodeStatusPanel',
   'antennaControlPanel',
   'scienceControlPanel',
+  'scienceDrillPanel',
   'scienceSensorPanel',
   'pdbRails',
   'armControlPanel',
@@ -429,6 +433,12 @@ const MosaicDashboard: React.FC = () => {
         return (
           <MosaicWindow {...windowProps}>
             <ScienceControlPanel />
+          </MosaicWindow>
+        );
+      case 'scienceDrillPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <ScienceDrillPanel />
           </MosaicWindow>
         );
       case 'scienceSensorPanel':
