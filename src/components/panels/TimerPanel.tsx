@@ -5,7 +5,7 @@ import TimerCard from './TimerCard';
 
 const DEFAULT_TIMER_COUNT = 5;
 const MIN_TIMERS = 1;
-const MAX_TIMERS = 8;
+const MAX_TIMERS = 20;
 
 function smallestFreeId(ids: number[]): number {
   const used = new Set(ids);
@@ -14,21 +14,34 @@ function smallestFreeId(ids: number[]): number {
   return id;
 }
 
+const initialIds = Array.from({ length: DEFAULT_TIMER_COUNT }, (_, i) => i + 1);
+
 const TimerPanel: React.FC = () => {
-  const [timerIds, setTimerIds] = useState<number[]>(
-    Array.from({ length: DEFAULT_TIMER_COUNT }, (_, i) => i + 1),
+  const [timerIds, setTimerIds] = useState<number[]>(initialIds);
+  const [labels, setLabels] = useState<Record<number, string>>(() =>
+    Object.fromEntries(initialIds.map((id) => [id, `Timer ${id}`])),
   );
 
   const addTimer = () => {
     setTimerIds((prev) => {
       if (prev.length >= MAX_TIMERS) return prev;
       const id = smallestFreeId(prev);
+      setLabels((prevLabels) => ({ ...prevLabels, [id]: `Timer ${id}` }));
       return [...prev, id].sort((a, b) => a - b);
     });
   };
 
   const removeTimer = (id: number) => {
     setTimerIds((prev) => (prev.length > MIN_TIMERS ? prev.filter((t) => t !== id) : prev));
+    setLabels((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const renameTimer = (id: number, label: string) => {
+    setLabels((prev) => ({ ...prev, [id]: label }));
   };
 
   return (
@@ -49,7 +62,8 @@ const TimerPanel: React.FC = () => {
         {timerIds.map((id) => (
           <TimerCard
             key={id}
-            label={`Timer ${id}`}
+            label={labels[id] ?? `Timer ${id}`}
+            onLabelChange={(label) => renameTimer(id, label)}
             onRemove={timerIds.length > MIN_TIMERS ? () => removeTimer(id) : undefined}
           />
         ))}

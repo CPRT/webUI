@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-export type CountdownStatus = 'idle' | 'running' | 'finished';
+export type CountdownStatus = 'idle' | 'running' | 'paused' | 'finished';
 
 const TICK_INTERVAL_MS = 200;
 
@@ -10,6 +10,8 @@ export interface UseCountdownResult {
   status: CountdownStatus;
   remainingMs: number;
   start: (durationMs: number) => void;
+  pause: () => void;
+  resume: () => void;
   reset: () => void;
 }
 
@@ -43,11 +45,27 @@ export function useCountdown(): UseCountdownResult {
     setStatus('running');
   };
 
+  const pause = () => {
+    setStatus((prev) => {
+      if (prev !== 'running') return prev;
+      endTimeRef.current = null;
+      return 'paused';
+    });
+  };
+
+  const resume = () => {
+    setStatus((prev) => {
+      if (prev !== 'paused') return prev;
+      endTimeRef.current = Date.now() + remainingMs;
+      return 'running';
+    });
+  };
+
   const reset = () => {
     endTimeRef.current = null;
     setRemainingMs(0);
     setStatus('idle');
   };
 
-  return { status, remainingMs, start, reset };
+  return { status, remainingMs, start, pause, resume, reset };
 }
