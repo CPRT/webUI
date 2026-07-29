@@ -54,6 +54,19 @@ type ServoMotorProps = {
   disabled: boolean;
 };
 
+interface MotorStatus {
+  temperature: number;
+  bus_voltage: number;
+  output_percent: number;
+  output_voltage: number;
+  output_current: number;
+  position: number;
+  velocity: number;
+  fwd_limit: boolean;
+  rev_limit: boolean;
+  active_errors: number;
+}
+
 const DEFAULT_RAMP = 0;
 
 const motors: MotorConfig[] = [
@@ -84,6 +97,8 @@ const servos: ServoConfig[] = [
   }
 ];
 
+const CM_PER_TICK = 1.5 / 13 / 4096;
+
 // --------------------
 // Panel
 // --------------------
@@ -92,6 +107,9 @@ const ScienceControlPanel: React.FC = () => {
 
   const [title, setTitle] = useState<string>("");
   const [polarStatus, setPolarStatus] = useState<string>("");
+  const [drill, setDrill] = useState<MotorStatus>();
+  const [elevator, setElevator] = useState<MotorStatus>();
+  const [zero, setZero] = useState<number>(0); // TODO: Service for resetting talon encoder estimate
 
   const sendMotor: SendMotorFn = (
     motorID,
@@ -150,7 +168,7 @@ const ScienceControlPanel: React.FC = () => {
 
     const polarSrv = new ROSLIB.Service({
       ros,
-      name: "/run_polarimeter",
+      name: "/science/run_polarimeter",
       serviceType: "interfaces/srv/RunPolarimeter",
     });
 
@@ -162,8 +180,60 @@ const ScienceControlPanel: React.FC = () => {
     );
   };
 
+  useEffect(() => {
+    if (!ros) return;
+
+    const drillTopic = new ROSLIB.Topic({
+      ros,
+      name: '/drill/status',
+      messageType: 'ros_phoenix/msg/MotorStatus',
+    });
+
+    const handleDrillReading = (msg: any) => {
+      setDrill(msg as MotorStatus);
+    };
+
+    drillTopic.subscribe(handleDrillReading);
+
+    return () => {
+      drillTopic.unsubscribe(handleDrillReading);
+    };
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) return;
+
+    const elevatorTopic = new ROSLIB.Topic({
+      ros,
+      name: '/elevator/status',
+      messageType: 'ros_phoenix/msg/MotorStatus',
+    });
+
+    const handleElevatorReading = (msg: any) => {
+      setElevator(msg as MotorStatus);
+    };
+
+    elevatorTopic.subscribe(handleElevatorReading);
+
+    return () => {
+      elevatorTopic.unsubscribe(handleElevatorReading);
+    };
+  }, [ros]);
+
   return (
     <div className="panel">
+      <div className="drill-info">
+        <div style={{ float: "left" }}>
+          <button style={{ marginRight: '10px' }} onClick={() => {setZero(drill?.position ?? 0)}}>Set Fully UP</button>
+          <span style={{ paddingRight: '20px' }}>Drill Height: <span className='drill-reading'>{(drill?.position ?? - zero) * CM_PER_TICK}</span> cm above ground</span>
+          <span style={{ paddingRight: '20px' }}>Drill Current: <span className='drill-reading'>{drill?.output_current.toFixed(2)}</span> A</span>
+          <span>Drill Percent: <span className='drill-reading'>{drill?.output_percent.toFixed(2)}</span>%</span>
+        </div>
+        <div style={{ float: "right" }}>
+          <span className='right' style={{ paddingRight: '20px' }}>Elevator Current: <span className='drill-reading'>{elevator?.output_current.toFixed(2)}</span> A</span>
+          <span className='right'>Elevator Percent: <span className='drill-reading'>{elevator?.output_percent.toFixed(2)}</span>%</span>
+        </div>
+      </div>
       <div className="motor-grid">
         {motors.map((motor) =>
             <DCMotor
@@ -342,6 +412,25 @@ const ScienceControlPanel: React.FC = () => {
           height: 100%;
           background: #00ffcc;
           transition: width 0.1s linear;
+        }
+
+        .drill-info {
+          border: 1px solid #3a3a3a;
+          border-radius: 10px;
+          padding: .75rem;
+          margin-bottom: 1rem;
+          box-shadow: 0 3px 10px rgba(0,0,0,.4);
+          background: linear-gradient(145deg,#2b2b2b,#202020);
+          color: #eaeaea;
+        }
+
+        .right {
+          vertical-align: -moz-middle-with-baseline;
+          vertical-align: -webkit-baseline-middle;
+        }
+
+        .drill-reading {
+          font-weight: 600;
         }
       `}</style>
     </div>
