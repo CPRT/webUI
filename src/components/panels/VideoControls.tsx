@@ -66,7 +66,7 @@ const VideoControls: React.FC = () => {
       },
     );
   };
-  
+
   const onRestart = () => {
     if (!ros || rosStatus !== "connected") return;
     const topic = new ROSLIB.Topic({
