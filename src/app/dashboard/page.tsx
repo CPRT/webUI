@@ -1,5 +1,3 @@
-"use client";
-
 import Layout from '@/components/Layout';
 import { Toaster } from "react-hot-toast";
 import type { Metadata } from "next";
