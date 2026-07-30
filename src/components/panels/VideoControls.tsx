@@ -1,8 +1,9 @@
 'use client';
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import VideoCustomPresetForm from "../VideoCustomPresetForm";
 import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
+import VideoPresetsPanel from "../VideoPresetsPanel";
 import RtpStats from "../RtpStats";
 import toast from "react-hot-toast";
 
@@ -24,8 +25,6 @@ interface VideoOutResponse {
 
 const VideoControls: React.FC = () => {
   const { ros, connectionStatus: rosStatus } = useROS();
-  const [presets, setPresets] = useState<string[]>([]);
-  const [customSources, setCustomSources] = useState<VideoOutRequest>({ sources: []});
 
   const triggerIFrame = () => {
     if (!ros || rosStatus !== "connected") return;
@@ -137,46 +136,24 @@ const VideoControls: React.FC = () => {
     console.log(`Setting framerate to: ${framerate} fps`);
   };
 
-  const setPreset = (name: string) => {
+  const newPreset = (presetName: string, camRequest: VideoOutRequest) => {
     if (!ros || rosStatus !== "connected") return;
-    if (name === "Custom") {
-      callCustom(customSources);
-    }else {
-      const setPresetClient = new ROSLIB.Service({
-        ros,
-        name: "/request_preset",
-        serviceType: "interfaces/srv/VideoPreset",
-      })
-      const request = new ROSLIB.ServiceRequest({ name: name });
-      setPresetClient.callService(request, (response) => {
-        if (!response.success) {
-          toast.error("Failed to select preset: " + name)
-        }
-      })
-    }
-  };
 
-  const customPreset = (sources: VideoOutRequest) => {
-    if (!presets.includes("Custom")) {
-      setPresets((prev) => [...prev, "Custom"]);
-    }
-
-    setCustomSources(sources);
-    callCustom(sources);
-  }
-
-  const callCustom = (sources: VideoOutRequest) => {
-    if (!ros || rosStatus !== "connected") return;
-    const setCamClient = new ROSLIB.Service({
+    const startVideoSrv = new ROSLIB.Service({
       ros,
       name: "/start_video",
       serviceType: "interfaces/srv/VideoOut",
     });
-    const request = new ROSLIB.ServiceRequest(sources);
-    setCamClient.callService(request, (response: VideoOutResponse) => {
-      console.log("Setting custom preset:", response.success ? "Succeeded" : "Failed");
-    });
-  }
+
+    startVideoSrv.callService(
+      new ROSLIB.ServiceRequest(camRequest),
+      (response: VideoOutResponse) => {
+        if (!response.success) {
+          toast.error("Failed to select preset: " + presetName)
+        }
+      },
+    );
+  };
 
   const connected = !!ros && rosStatus === "connected";
   // Shift + s for snapshot 
@@ -203,25 +180,6 @@ const VideoControls: React.FC = () => {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [connected]);
-
-  useEffect(() => {
-    if (!ros) {
-      console.error("ROS connection is not established.");
-      return;
-    }
-    const getPresetsClient = new ROSLIB.Service({
-      ros: ros,
-      name: "/list_presets",
-      serviceType: "unterfaces/srv/GetPresets",
-    });
-
-    const request = new ROSLIB.ServiceRequest({});
-    getPresetsClient.callService(request, (response) => {
-      if (response) {
-        setPresets(response.presets);
-      }
-    });
-  }, [ros]);
 
   const buttonStyle = (enabled: boolean) => ({
     border: "1px solid #444",
@@ -316,32 +274,14 @@ const VideoControls: React.FC = () => {
             </div>
 
             <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid #444" }}>
-              <div
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: "0.5rem",
-                }}
-              >
-                {presets.map((name) => (
-                  <button
-                    key={name}
-                    disabled={!connected}
-                    style={buttonStyle(connected)}
-                    onClick={() => setPreset(name)}
-                  >
-                    {name}
-                  </button>
-                ))}
-              </div>
+              <VideoPresetsPanel onPresetSelect={(name, preset) => newPreset(name, preset)} />
             </div>
           </div>
           <RtpStats />
         </div>
 
         <div style={{ height: "100%", overflow: "auto", flex: 1, minWidth: 0 }}>
-          <VideoCustomPresetForm onSubmit={customPreset} />
+          <VideoCustomPresetForm onSubmit={(preset) => newPreset("Custom", preset)} />
         </div>
       </div>
     </div>
