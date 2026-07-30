@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BOB ROS2",
+  title: "CPRT webUI",
   description: "Carleton Planetary Robotics Team's ROS2 Web Interface",
 };
 

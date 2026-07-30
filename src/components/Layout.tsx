@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from 'react';
 import ConnectionStatusDisplay from '@/components/ConnectionStatusDisplay';
-import RoverModeDisplay from '@/components/RoverModeDisplay';
+import BusVoltageDisplay from '@/components/BusVoltageDisplay';
 
 interface LayoutProps {
   children: ReactNode;
@@ -13,11 +13,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="pageContainer">
       <header className="header">
         <div className="header-left">
-          <a href="/"><h1 className="title">ROS2 Offline Dashboard</h1></a>
+          <a href="/"><h1 className="title">CPRT webUI</h1></a>
         </div>
         <div className="header-center">
           <ConnectionStatusDisplay />
-          <RoverModeDisplay />
+          <BusVoltageDisplay />
         </div>
       </header>
       <main className="mainContent">{children}</main>

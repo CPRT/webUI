@@ -3,9 +3,17 @@
 import React, { useState } from 'react';
 import TimerCard from './TimerCard';
 
-const DEFAULT_TIMER_COUNT = 5;
-const MIN_TIMERS = 1;
-const MAX_TIMERS = 8;
+type TimerGroup = 'orders' | 'other';
+
+const DEFAULT_ORDER_COUNT = 3;
+const DEFAULT_OTHER_COUNT = 2;
+const MIN_TIMERS_PER_GROUP = 1;
+const MAX_TIMERS_PER_GROUP = 20;
+
+const GROUPS: { key: TimerGroup; title: string; addLabel: string }[] = [
+  { key: 'orders', title: 'Orders', addLabel: '+ Add Order Timer' },
+  { key: 'other', title: 'Cooking', addLabel: '+ Add Timer' },
+];
 
 function smallestFreeId(ids: number[]): number {
   const used = new Set(ids);
@@ -14,46 +22,91 @@ function smallestFreeId(ids: number[]): number {
   return id;
 }
 
+const initialOrderIds = Array.from({ length: DEFAULT_ORDER_COUNT }, (_, i) => i + 1);
+const initialOtherIds = Array.from(
+  { length: DEFAULT_OTHER_COUNT },
+  (_, i) => DEFAULT_ORDER_COUNT + i + 1,
+);
+const initialIds = [...initialOrderIds, ...initialOtherIds];
+
 const TimerPanel: React.FC = () => {
-  const [timerIds, setTimerIds] = useState<number[]>(
-    Array.from({ length: DEFAULT_TIMER_COUNT }, (_, i) => i + 1),
+  const [timerIds, setTimerIds] = useState<number[]>(initialIds);
+  const [groups, setGroups] = useState<Record<number, TimerGroup>>(() => ({
+    ...Object.fromEntries(initialOrderIds.map((id) => [id, 'orders' as TimerGroup])),
+    ...Object.fromEntries(initialOtherIds.map((id) => [id, 'other' as TimerGroup])),
+  }));
+  const [labels, setLabels] = useState<Record<number, string>>(() =>
+    Object.fromEntries(initialIds.map((id) => [id, `Timer ${id}`])),
   );
 
-  const addTimer = () => {
+  const addTimer = (group: TimerGroup) => {
     setTimerIds((prev) => {
-      if (prev.length >= MAX_TIMERS) return prev;
+      const countInGroup = prev.filter((id) => groups[id] === group).length;
+      if (countInGroup >= MAX_TIMERS_PER_GROUP) return prev;
       const id = smallestFreeId(prev);
+      setLabels((prevLabels) => ({ ...prevLabels, [id]: `Timer ${id}` }));
+      setGroups((prevGroups) => ({ ...prevGroups, [id]: group }));
       return [...prev, id].sort((a, b) => a - b);
     });
   };
 
   const removeTimer = (id: number) => {
-    setTimerIds((prev) => (prev.length > MIN_TIMERS ? prev.filter((t) => t !== id) : prev));
+    const group = groups[id];
+    const countInGroup = timerIds.filter((t) => groups[t] === group).length;
+    if (countInGroup <= MIN_TIMERS_PER_GROUP) return;
+
+    setTimerIds((prev) => prev.filter((t) => t !== id));
+    setLabels((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setGroups((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const renameTimer = (id: number, label: string) => {
+    setLabels((prev) => ({ ...prev, [id]: label }));
   };
 
   return (
     <div className="panel">
       <div className="panel-header">
         <h3>Multi-Timer</h3>
-        <button
-          type="button"
-          className="add-btn"
-          onClick={addTimer}
-          disabled={timerIds.length >= MAX_TIMERS}
-        >
-          + Add Timer
-        </button>
       </div>
 
-      <div className="timer-grid">
-        {timerIds.map((id) => (
-          <TimerCard
-            key={id}
-            label={`Timer ${id}`}
-            onRemove={timerIds.length > MIN_TIMERS ? () => removeTimer(id) : undefined}
-          />
-        ))}
-      </div>
+      {GROUPS.map(({ key, title, addLabel }) => {
+        const idsInGroup = timerIds.filter((id) => groups[id] === key);
+        return (
+          <div className="timer-section" key={key}>
+            <div className="section-header">
+              <h4>{title}</h4>
+              <button
+                type="button"
+                className="add-btn"
+                onClick={() => addTimer(key)}
+                disabled={idsInGroup.length >= MAX_TIMERS_PER_GROUP}
+              >
+                {addLabel}
+              </button>
+            </div>
+
+            <div className="timer-grid">
+              {idsInGroup.map((id) => (
+                <TimerCard
+                  key={id}
+                  label={labels[id] ?? `Timer ${id}`}
+                  onLabelChange={(label) => renameTimer(id, label)}
+                  onRemove={idsInGroup.length > MIN_TIMERS_PER_GROUP ? () => removeTimer(id) : undefined}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
 
       <style jsx>{`
         .panel {
@@ -67,9 +120,6 @@ const TimerPanel: React.FC = () => {
         }
 
         .panel-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
           border-bottom: 1px solid #444;
           padding-bottom: 0.6rem;
           margin-bottom: 1rem;
@@ -79,6 +129,34 @@ const TimerPanel: React.FC = () => {
           margin: 0;
           font-size: 1.3rem;
           letter-spacing: 0.5px;
+        }
+
+        .timer-section {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          flex: 1;
+        }
+
+        .timer-section + .timer-section {
+          margin-top: 1.25rem;
+          padding-top: 1rem;
+          border-top: 1px solid #333;
+        }
+
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.6rem;
+        }
+
+        h4 {
+          margin: 0;
+          font-size: 0.95rem;
+          letter-spacing: 0.4px;
+          color: #bbb;
+          text-transform: uppercase;
         }
 
         .add-btn {

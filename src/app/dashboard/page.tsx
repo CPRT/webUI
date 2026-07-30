@@ -2,17 +2,19 @@
 
 import Layout from '@/components/Layout';
 import { Toaster } from "react-hot-toast";
-import dynamic from 'next/dynamic';
+import type { Metadata } from "next";
+import MosaicDashboardClient from "./MosaicDashboardClient";
 
-const MosaicDashboard = dynamic(() => import('@/components/panels/MosaicDashboard'), { ssr: false });
+export const metadata: Metadata = {
+  title: "Dashboard - CPRT webUI",
+  description: "Carleton Planetary Robotics Team's ROS2 Web Interface",
+};
 
-const Dashboard = () => {
+export default function Dashboard() {
   return (
     <Layout>
-      <MosaicDashboard />
+      <MosaicDashboardClient />
       <Toaster />
     </Layout>
   );
-};
-
-export default Dashboard;
+}

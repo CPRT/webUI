@@ -1,15 +1,17 @@
-'use client';
-
 import Layout from "../../components/Layout";
+import type { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
-import dynamic from 'next/dynamic';
+import ContainerListClient from "./ContainerListClient";
 
-const ContainerListPage = dynamic(() => import("../../components/ContainerList"), { ssr: false });
+export const metadata: Metadata = {
+  title: "Launch - CPRT webUI",
+  description: "Carleton Planetary Robotics Team's ROS2 Web Interface",
+};
 
 export default function Launch() {
   return (
     <Layout>
-      <ContainerListPage/>
+      <ContainerListClient/>
       <Toaster />
     </Layout>
   );
