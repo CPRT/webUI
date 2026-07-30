@@ -48,6 +48,25 @@ const VideoControls: React.FC = () => {
     console.log(`Setting bitrate to: ${bitrate} bps`);
   };
 
+  const newPreset = (presetName: string, camRequest: VideoOutRequest) => {
+    if (!ros || rosStatus !== "connected") return;
+
+    const startVideoSrv = new ROSLIB.Service({
+      ros,
+      name: "/start_video",
+      serviceType: "interfaces/srv/VideoOut",
+    });
+
+    startVideoSrv.callService(
+      new ROSLIB.ServiceRequest(camRequest),
+      (response: VideoOutResponse) => {
+        if (!response.success) {
+          toast.error("Failed to select preset: " + presetName)
+        }
+      },
+    );
+  };
+  
   const onRestart = () => {
     if (!ros || rosStatus !== "connected") return;
     const topic = new ROSLIB.Topic({
@@ -134,25 +153,6 @@ const VideoControls: React.FC = () => {
       }
     });
     console.log(`Setting framerate to: ${framerate} fps`);
-  };
-
-  const newPreset = (presetName: string, camRequest: VideoOutRequest) => {
-    if (!ros || rosStatus !== "connected") return;
-
-    const startVideoSrv = new ROSLIB.Service({
-      ros,
-      name: "/start_video",
-      serviceType: "interfaces/srv/VideoOut",
-    });
-
-    startVideoSrv.callService(
-      new ROSLIB.ServiceRequest(camRequest),
-      (response: VideoOutResponse) => {
-        if (!response.success) {
-          toast.error("Failed to select preset: " + presetName)
-        }
-      },
-    );
   };
 
   const connected = !!ros && rosStatus === "connected";
