@@ -97,7 +97,8 @@ const servos: ServoConfig[] = [
   }
 ];
 
-const CM_PER_TICK = 1.5 / 13 / 4096;
+const CM_PER_TICK = 0.15 / 13 / 4096; // 1.5 mm pitch thread, 1:13 gear ratio, 12-bit encoder
+const DRILL_HEIGHT = 30;
 
 // --------------------
 // Panel
@@ -224,14 +225,14 @@ const ScienceControlPanel: React.FC = () => {
     <div className="panel">
       <div className="drill-info">
         <div style={{ float: "left" }}>
-          <button style={{ marginRight: '10px' }} onClick={() => {setZero(drill?.position ?? 0)}}>Set Fully UP</button>
-          <span style={{ paddingRight: '20px' }}>Drill Height: <span className='drill-reading'>{(drill?.position ?? - zero) * CM_PER_TICK}</span> cm above ground</span>
+          <button style={{ marginRight: '10px' }} onClick={() => {setZero(elevator?.position ?? 0)}}>Set Fully UP</button>
+          <span style={{ paddingRight: '20px' }}>Drill Height: <span className='drill-reading'>{(DRILL_HEIGHT - (elevator?.position ?? - zero) * CM_PER_TICK).toFixed(2)}</span> cm above ground</span>
           <span style={{ paddingRight: '20px' }}>Drill Current: <span className='drill-reading'>{drill?.output_current.toFixed(2)}</span> A</span>
-          <span>Drill Percent: <span className='drill-reading'>{drill?.output_percent.toFixed(2)}</span>%</span>
+          <span>Drill Percent: <span className='drill-reading'>{(drill?.output_percent ?? 0 * 100).toFixed(0)}</span>%</span>
         </div>
         <div style={{ float: "right" }}>
           <span className='right' style={{ paddingRight: '20px' }}>Elevator Current: <span className='drill-reading'>{elevator?.output_current.toFixed(2)}</span> A</span>
-          <span className='right'>Elevator Percent: <span className='drill-reading'>{elevator?.output_percent.toFixed(2)}</span>%</span>
+          <span className='right'>Elevator Percent: <span className='drill-reading'>{(elevator?.output_percent ?? 0 * 100).toFixed(0)}</span>%</span>
         </div>
       </div>
       <div className="motor-grid">
