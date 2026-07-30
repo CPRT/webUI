@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Polyline, Marker, Popup } from 'react-leaflet';
 import { useROS } from '@/ros/ROSContext';
-import { useWaypoints } from '@/contexts/WaypointContext';
+import { useWaypoints, LatLngTuple } from '@/contexts/WaypointContext';
 import ROSLIB from 'roslib';
 import L from 'leaflet'
 
@@ -18,6 +18,8 @@ const BreadcrumbTrail: React.FC = () => {
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [paused, setPaused] = useState<boolean>(false);
   const [lastFix, setLastFix] = useState<Breadcrumb | null>(null);
+  const [antennaLoc, setAntennaLoc] = useState<LatLngTuple>([0, 0]);
+  const [antennaHead, setAntennaHead] = useState<number>(0);
 
   useEffect(() => {
     if (!ros) return;
@@ -26,6 +28,18 @@ const BreadcrumbTrail: React.FC = () => {
       ros,
       name: '/gps/fix',
       messageType: 'sensor_msgs/NavSatFix',
+    });
+
+    const antennaFixTopic = new ROSLIB.Topic({
+      ros,
+      name: '/base_station/fix',
+      messageType: 'sensor_msgs/NavSatFix',
+    });
+
+    const antennaBearingTopic = new ROSLIB.Topic({
+      ros,
+      name: '/antenna/tracker_bearing',
+      messageType: 'std_msgs/Float32',
     });
 
     const handleFix = (message: any) => {
@@ -40,9 +54,25 @@ const BreadcrumbTrail: React.FC = () => {
       setLastFix(newFix);
     };
 
+    const handleAntennaFix = (message: any) => {
+      // Assuming the /fix message contains 'latitude' and 'longitude'
+      const { latitude, longitude } = message;
+      setAntennaLoc([latitude, longitude]);
+    };
+
+    const handleAntennaBearing = (message: any) => {
+      // Assuming the message contains float32
+      const angle = message.data * 360;
+      setAntennaHead(angle);
+    };
+
     fixTopic.subscribe(handleFix);
+    antennaFixTopic.subscribe(handleAntennaFix);
+    antennaBearingTopic.subscribe(handleAntennaBearing);
     return () => {
       fixTopic.unsubscribe(handleFix);
+      antennaFixTopic.unsubscribe(handleAntennaFix);
+      antennaBearingTopic.unsubscribe(handleAntennaBearing);
     };
   }, [ros, paused]);
 
@@ -107,17 +137,17 @@ const BreadcrumbTrail: React.FC = () => {
           maxWidth: '300px',
         }}
       >
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <strong>GPS Fix Status</strong>
         </div>
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <strong>ROS Connection:</strong>{' '}
           <span style={{ color: connectionStatus === 'connected' ? 'green' : 'red' }}>
             {connectionStatus}
           </span>
         </div>
         {lastFix ? (
-          <div style={{ marginBottom: '0.5rem' }}>
+          <div style={{ marginBottom: '0.125rem' }}>
             <strong>Last Fix:</strong>
             <br />
             {/* TODO: Is this enough percision? */}
@@ -128,15 +158,26 @@ const BreadcrumbTrail: React.FC = () => {
             Time: {new Date(lastFix.timestamp).toLocaleTimeString()}
           </div>
         ) : (
-          <div style={{ marginBottom: '0.5rem' }}>No fix data received yet.</div>
+          <div style={{ marginBottom: '0.125rem' }}>No fix data received yet.</div>
         )}
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <strong>Total Fixes:</strong> {breadcrumbs.length}
         </div>
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <strong>Total Distance:</strong> {totalDistance.toFixed(2)} km
         </div>
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
+          <strong>Antenna Location:</strong>
+          <br />
+            {/* TODO: Is this enough percision? */}
+            Lat: {antennaLoc[0].toFixed(6)}
+            <br />
+            Lon: {antennaLoc[1].toFixed(6)}
+        </div>
+        <div style={{ marginBottom: '0.125rem' }}>
+          <strong>Antenna Heading:</strong> {antennaHead.toFixed(1)}°
+        </div>
+        <div style={{ marginBottom: '0.125rem' }}>
           <button
             onClick={() => setPaused(!paused)}
             style={{
