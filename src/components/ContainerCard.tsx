@@ -35,14 +35,11 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
     setStatusState(option.status);
   }, [option.status]);
 
-  // Keep the event message in sync independently
   useEffect(() => {
     setEventMsg(externalEventMsg);
   }, [externalEventMsg]);
 
-  // Only clear logs when a genuinely NEW container starts (id changes) —
-  // not on every status change, so stopping a container doesn't wipe its
-  // logs before it has actually finished shutting down.
+  // Only clear logs when a new container starts (id changes)
   useEffect(() => {
     setLogs([]);
   }, [option.id]);
