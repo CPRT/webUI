@@ -16,6 +16,7 @@
     "fetch-cookie": "^3.2.0",
     "html2canvas": "^1.4.1",
     "js-cookie": "^3.0.5",
+    "js-yaml": "^5.2.1",
     "leaflet": "^1.9.4",
     "next": "15.1.6",
     "next-runtime-env": "^3.3.0",

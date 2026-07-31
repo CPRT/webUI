@@ -19,6 +19,7 @@ import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
 import NodeStatusPanel from './NodeStatusPanel';
+import CameraControlPanel from './CameraControlPanel';
 import AntennaControlPanel from './AntennaControlPanel';
 import ScienceControlPanel from './ScienceControlPanel';
 import EspSensorPanel from './EspSensorPanel';
@@ -37,6 +38,7 @@ type TileType =
   | 'networkHealthMonitor'
   | 'MotorStatusPanel'
   | 'NodeStatusPanel'
+  | 'CameraControlPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
   | 'espSensorPanel'
@@ -58,6 +60,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   networkHealthMonitor: 'Connection Health',
   MotorStatusPanel: 'Motor Status',
   NodeStatusPanel: 'Node Status',
+  CameraControlPanel: 'Camera Control',
   antennaControlPanel: 'Antenna Control',
   scienceControlPanel: 'Science Motor Control',
   espSensorPanel: 'ESP Sensor',
@@ -77,6 +80,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'goalSetter',
   'MotorStatusPanel',
   'NodeStatusPanel',
+  'CameraControlPanel',
   'antennaControlPanel',
   'scienceControlPanel',
   'espSensorPanel',
@@ -143,9 +147,14 @@ function buildDefaultLayout(makeTileId: (type: TileType) => TileId): MosaicNode<
             },
             splitPercentage: 35,
           },
-          second: makeTileId('networkHealthMonitor'),
+          second: makeTileId('networkHealthMonitor')
         },
-        second: makeTileId('waypointList'),
+        second: {
+          direction: 'row',
+          first: makeTileId('waypointList'),
+          second: makeTileId('CameraControlPanel'),
+          splitPercentage: 50,
+        },
         splitPercentage: 55,
       },
       splitPercentage: 55,
@@ -402,6 +411,13 @@ const MosaicDashboard: React.FC = () => {
       return (
         <MosaicWindow {...windowProps}>
           <NodeStatusPanel />
+        </MosaicWindow>
+      );
+
+      case 'CameraControlPanel':
+      return (
+        <MosaicWindow {...windowProps}>
+          <CameraControlPanel />
         </MosaicWindow>
       );
 
