@@ -165,7 +165,7 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove })
         .label-input {
           margin: 0;
           padding: 0.15rem 0.3rem;
-          font-size: 0.95rem;
+          font-size: 1.5rem;
           font-weight: 600;
           color: #eaeaea;
           background: transparent;

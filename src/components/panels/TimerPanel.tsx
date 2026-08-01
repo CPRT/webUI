@@ -3,17 +3,12 @@
 import React, { useState } from 'react';
 import TimerCard from './TimerCard';
 
-type TimerGroup = 'orders' | 'other';
-
-const DEFAULT_ORDER_COUNT = 3;
-const DEFAULT_OTHER_COUNT = 2;
-const MIN_TIMERS_PER_GROUP = 1;
-const MAX_TIMERS_PER_GROUP = 20;
-
-const GROUPS: { key: TimerGroup; title: string; addLabel: string }[] = [
-  { key: 'orders', title: 'Orders', addLabel: '+ Add Order Timer' },
-  { key: 'other', title: 'Cooking', addLabel: '+ Add Timer' },
-];
+const DEFAULT_COLUMN_NAMES = ['Orders', 'Cooking'];
+const DEFAULT_TIMERS_PER_COLUMN = [3, 2];
+const MIN_TIMERS_PER_COLUMN = 1;
+const MAX_TIMERS_PER_COLUMN = 20;
+const MIN_COLUMNS = 1;
+const MAX_COLUMNS = 10;
 
 function smallestFreeId(ids: number[]): number {
   const used = new Set(ids);
@@ -22,46 +17,85 @@ function smallestFreeId(ids: number[]): number {
   return id;
 }
 
-const initialOrderIds = Array.from({ length: DEFAULT_ORDER_COUNT }, (_, i) => i + 1);
-const initialOtherIds = Array.from(
-  { length: DEFAULT_OTHER_COUNT },
-  (_, i) => DEFAULT_ORDER_COUNT + i + 1,
-);
-const initialIds = [...initialOrderIds, ...initialOtherIds];
+let columnSeq = 0;
+function nextColumnId(): number {
+  columnSeq += 1;
+  return columnSeq;
+}
+
+const initialColumns = DEFAULT_COLUMN_NAMES.map((name, i) => ({
+  id: nextColumnId(),
+  name,
+  count: DEFAULT_TIMERS_PER_COLUMN[i] ?? 1,
+}));
+
+let idCounter = 0;
+const initialTimerIds: Record<number, number[]> = {};
+initialColumns.forEach((column) => {
+  const ids: number[] = [];
+  for (let i = 0; i < column.count; i += 1) {
+    idCounter += 1;
+    ids.push(idCounter);
+  }
+  initialTimerIds[column.id] = ids;
+});
 
 const TimerPanel: React.FC = () => {
-  const [timerIds, setTimerIds] = useState<number[]>(initialIds);
-  const [groups, setGroups] = useState<Record<number, TimerGroup>>(() => ({
-    ...Object.fromEntries(initialOrderIds.map((id) => [id, 'orders' as TimerGroup])),
-    ...Object.fromEntries(initialOtherIds.map((id) => [id, 'other' as TimerGroup])),
-  }));
-  const [labels, setLabels] = useState<Record<number, string>>(() =>
-    Object.fromEntries(initialIds.map((id) => [id, `Timer ${id}`])),
-  );
+  const [columns, setColumns] = useState(initialColumns.map(({ id, name }) => ({ id, name })));
+  const [timerIdsByColumn, setTimerIdsByColumn] = useState<Record<number, number[]>>(initialTimerIds);
+  const [labels, setLabels] = useState<Record<number, string>>(() => {
+    const all: Record<number, string> = {};
+    Object.values(initialTimerIds)
+      .flat()
+      .forEach((id) => {
+        all[id] = `Timer ${id}`;
+      });
+    return all;
+  });
 
-  const addTimer = (group: TimerGroup) => {
-    setTimerIds((prev) => {
-      const countInGroup = prev.filter((id) => groups[id] === group).length;
-      if (countInGroup >= MAX_TIMERS_PER_GROUP) return prev;
-      const id = smallestFreeId(prev);
-      setLabels((prevLabels) => ({ ...prevLabels, [id]: `Timer ${id}` }));
-      setGroups((prevGroups) => ({ ...prevGroups, [id]: group }));
-      return [...prev, id].sort((a, b) => a - b);
+  const addColumn = () => {
+    setColumns((prev) => {
+      if (prev.length >= MAX_COLUMNS) return prev;
+      const id = nextColumnId();
+      setTimerIdsByColumn((prevTimers) => ({ ...prevTimers, [id]: [] }));
+      return [...prev, { id, name: `Column ${prev.length + 1}` }];
     });
   };
 
-  const removeTimer = (id: number) => {
-    const group = groups[id];
-    const countInGroup = timerIds.filter((t) => groups[t] === group).length;
-    if (countInGroup <= MIN_TIMERS_PER_GROUP) return;
-
-    setTimerIds((prev) => prev.filter((t) => t !== id));
-    setLabels((prev) => {
+  const removeColumn = (columnId: number) => {
+    setColumns((prev) => {
+      if (prev.length <= MIN_COLUMNS) return prev;
+      return prev.filter((c) => c.id !== columnId);
+    });
+    setTimerIdsByColumn((prev) => {
       const next = { ...prev };
-      delete next[id];
+      delete next[columnId];
       return next;
     });
-    setGroups((prev) => {
+  };
+
+  const renameColumn = (columnId: number, name: string) => {
+    setColumns((prev) => prev.map((c) => (c.id === columnId ? { ...c, name } : c)));
+  };
+
+  const addTimer = (columnId: number) => {
+    setTimerIdsByColumn((prev) => {
+      const idsInColumn = prev[columnId] ?? [];
+      if (idsInColumn.length >= MAX_TIMERS_PER_COLUMN) return prev;
+      const allIds = Object.values(prev).flat();
+      const id = smallestFreeId(allIds);
+      setLabels((prevLabels) => ({ ...prevLabels, [id]: `Timer ${id}` }));
+      return { ...prev, [columnId]: [...idsInColumn, id] };
+    });
+  };
+
+  const removeTimer = (columnId: number, id: number) => {
+    setTimerIdsByColumn((prev) => {
+      const idsInColumn = prev[columnId] ?? [];
+      if (idsInColumn.length <= MIN_TIMERS_PER_COLUMN) return prev;
+      return { ...prev, [columnId]: idsInColumn.filter((t) => t !== id) };
+    });
+    setLabels((prev) => {
       const next = { ...prev };
       delete next[id];
       return next;
@@ -78,35 +112,60 @@ const TimerPanel: React.FC = () => {
         <h3>Multi-Timer</h3>
       </div>
 
-      {GROUPS.map(({ key, title, addLabel }) => {
-        const idsInGroup = timerIds.filter((id) => groups[id] === key);
-        return (
-          <div className="timer-section" key={key}>
-            <div className="section-header">
-              <h4>{title}</h4>
-              <button
-                type="button"
-                className="add-btn"
-                onClick={() => addTimer(key)}
-                disabled={idsInGroup.length >= MAX_TIMERS_PER_GROUP}
-              >
-                {addLabel}
-              </button>
-            </div>
-
-            <div className="timer-grid">
-              {idsInGroup.map((id) => (
+      <div
+        className="columns-track"
+        style={{ gridTemplateColumns: `repeat(${columns.length}, 220px) 140px` }}
+      >
+        {columns.map((column, index) => {
+          const idsInColumn = timerIdsByColumn[column.id] ?? [];
+          const columnStyle = index > 0 ? { borderLeft: '1px solid #333', paddingLeft: '1rem' } : undefined;
+          return (
+            <React.Fragment key={column.id}>
+              <div className="column-timer-cell" style={{ gridColumn: index + 1, gridRow: 1, ...columnStyle }}>
                 <TimerCard
-                  key={id}
-                  label={labels[id] ?? `Timer ${id}`}
-                  onLabelChange={(label) => renameTimer(id, label)}
-                  onRemove={idsInGroup.length > MIN_TIMERS_PER_GROUP ? () => removeTimer(id) : undefined}
+                  label={column.name}
+                  onLabelChange={(name) => renameColumn(column.id, name)}
+                  onRemove={columns.length > MIN_COLUMNS ? () => removeColumn(column.id) : undefined}
                 />
-              ))}
-            </div>
-          </div>
-        );
-      })}
+              </div>
+
+              <div className="column-content-cell" style={{ gridColumn: index + 1, gridRow: 3, ...columnStyle }}>
+                <button
+                  type="button"
+                  className="add-btn"
+                  onClick={() => addTimer(column.id)}
+                  disabled={idsInColumn.length >= MAX_TIMERS_PER_COLUMN}
+                >
+                  + Add Timer
+                </button>
+
+                <div className="timer-stack">
+                  {idsInColumn.map((id) => (
+                    <TimerCard
+                      key={id}
+                      label={labels[id] ?? `Timer ${id}`}
+                      onLabelChange={(label) => renameTimer(id, label)}
+                      onRemove={idsInColumn.length > MIN_TIMERS_PER_COLUMN ? () => removeTimer(column.id, id) : undefined}
+                    />
+                  ))}
+                </div>
+              </div>
+            </React.Fragment>
+          );
+        })}
+
+        <div className="column-divider" style={{ gridColumn: `1 / ${columns.length + 1}`, gridRow: 2 }} />
+
+        <button
+          type="button"
+          className="add-column-btn"
+          style={{ gridColumn: columns.length + 1, gridRow: '1 / 4' }}
+          onClick={addColumn}
+          disabled={columns.length >= MAX_COLUMNS}
+        >
+          + Add Column
+        </button>
+      </div>
 
       <style jsx>{`
         .panel {
@@ -131,32 +190,34 @@ const TimerPanel: React.FC = () => {
           letter-spacing: 0.5px;
         }
 
-        .timer-section {
+        .columns-track {
+          display: grid;
+          grid-template-rows: auto 0.9rem 1fr;
+          column-gap: 1rem;
+          align-items: start;
+          flex: 1;
+          min-height: 0;
+          overflow-x: auto;
+          overflow-y: hidden;
+          padding-bottom: 0.25rem;
+        }
+
+        .column-timer-cell {
+          min-width: 0;
+        }
+
+        .column-divider {
+          align-self: center;
+          height: 2px;
+          background: #0070f3;
+        }
+
+        .column-content-cell {
           display: flex;
           flex-direction: column;
           min-height: 0;
-          flex: 1;
-        }
-
-        .timer-section + .timer-section {
-          margin-top: 1.25rem;
-          padding-top: 1rem;
-          border-top: 1px solid #333;
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.6rem;
-        }
-
-        h4 {
-          margin: 0;
-          font-size: 0.95rem;
-          letter-spacing: 0.4px;
-          color: #bbb;
-          text-transform: uppercase;
+          max-height: 100%;
+          min-width: 0;
         }
 
         .add-btn {
@@ -168,6 +229,8 @@ const TimerPanel: React.FC = () => {
           font-weight: 500;
           color: white;
           background: #0070f3;
+          white-space: nowrap;
+          margin-bottom: 0.75rem;
         }
 
         .add-btn:hover:enabled {
@@ -180,12 +243,36 @@ const TimerPanel: React.FC = () => {
           cursor: not-allowed;
         }
 
-        .timer-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 1rem;
+        .timer-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
           overflow-y: auto;
           padding-right: 0.25rem;
+          min-height: 0;
+        }
+
+        .add-column-btn {
+          height: 100%;
+          padding: 0.5rem 0.75rem;
+          border: 1px dashed #444;
+          border-radius: 6px;
+          font-size: 0.85rem;
+          cursor: pointer;
+          font-weight: 500;
+          color: #ccc;
+          background: transparent;
+        }
+
+        .add-column-btn:hover:enabled {
+          border-color: #0070f3;
+          color: #fff;
+        }
+
+        .add-column-btn:disabled {
+          color: #555;
+          border-color: #333;
+          cursor: not-allowed;
         }
       `}</style>
     </div>
