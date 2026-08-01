@@ -135,7 +135,7 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
         </p>
       )}
   
-      {(statusState !== 'stopped' || logs.length > 0) && (
+      {(statusState !== 'stopped') && (
         <div style={{ marginTop: 12 }}>
           <strong>Live Logs:</strong>
           <pre
