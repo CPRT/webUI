@@ -170,4 +170,3 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
 };
 
 export default MapView;
-
