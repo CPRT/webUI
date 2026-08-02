@@ -30,6 +30,7 @@ import HeadlightControlPanel from './HeadlightControlPanel';
 import MorseTransmissionPanel from './MorseTransmissionPanel';
 import RtpStats from './RtpStats';
 import TopicEchoPanel from './TopicEchoPanel';
+import DriveThrottlePanel from './DriveThrottlePanel';
 
 import { ROVER_IP } from '@/constants';
 
@@ -44,6 +45,7 @@ type TileType =
   | 'goalSetter'
   | 'networkHealthMonitor'
   | 'motorStatusPanel'
+  | 'driveThrottlePanel'
   | 'nodeStatusPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
@@ -65,6 +67,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   waypointList: 'Waypoint List',
   videoControls: 'Video Stream',
   rtpStats: 'RTP Statistics',
+  driveThrottlePanel: 'Drive Throttle',
   gasSensor: 'Science',
   orientationDisplay: 'Rover Orientation',
   goalSetter: 'Nav2',
@@ -90,6 +93,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'orientationDisplay',
   'videoControls',
   'rtpStats',
+  'driveThrottlePanel',
   'waypointList',
   'gasSensor',
   'goalSetter',
@@ -382,6 +386,13 @@ const MosaicDashboard: React.FC = () => {
         return (
           <MosaicWindow {...windowProps}>
             <RtpStats />
+          </MosaicWindow>
+        );
+
+      case 'driveThrottlePanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <DriveThrottlePanel />
           </MosaicWindow>
         );
 
