@@ -100,6 +100,12 @@ const VideoControls: React.FC = () => {
         imageWindow?.close();
         return;
       }
+      console.log("Panorama service response received", {
+        success: response.success,
+        format: response.image?.format,
+        dataType: typeof response.image?.data,
+        dataLength: response.image?.data?.length,
+      });
 
       const imageData = response.image?.data;
 
@@ -159,6 +165,9 @@ const VideoControls: React.FC = () => {
       }
 
       setTimeout(() => URL.revokeObjectURL(url), 60000);
+    },
+    (error: unknown) => {
+      console.error("Panorama service error", error);
     });
   };
   const onSnapshot = () => {
