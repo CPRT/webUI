@@ -28,6 +28,7 @@ import WebRTCClient from './WebRTCClient';
 import TimerPanel from './TimerPanel';
 import HeadlightControlPanel from './HeadlightControlPanel';
 import MorseTransmissionPanel from './MorseTransmissionPanel';
+import RtpStats from './RtpStats';
 import TopicEchoPanel from './TopicEchoPanel';
 
 import { ROVER_IP } from '@/constants';
@@ -37,6 +38,7 @@ type TileType =
   | 'rosMonitor'
   | 'waypointList'
   | 'videoControls'
+  | 'rtpStats'
   | 'gasSensor'
   | 'orientationDisplay'
   | 'goalSetter'
@@ -62,6 +64,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   rosMonitor: 'System Telemetry',
   waypointList: 'Waypoint List',
   videoControls: 'Video Stream',
+  rtpStats: 'RTP Statistics',
   gasSensor: 'Science',
   orientationDisplay: 'Rover Orientation',
   goalSetter: 'Nav2',
@@ -86,6 +89,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'networkHealthMonitor',
   'orientationDisplay',
   'videoControls',
+  'rtpStats',
   'waypointList',
   'gasSensor',
   'goalSetter',
@@ -371,6 +375,13 @@ const MosaicDashboard: React.FC = () => {
         return (
           <MosaicWindow {...windowProps}>
             <VideoControls />
+          </MosaicWindow>
+        );
+      
+      case 'rtpStats':
+        return (
+          <MosaicWindow {...windowProps}>
+            <RtpStats />
           </MosaicWindow>
         );
 

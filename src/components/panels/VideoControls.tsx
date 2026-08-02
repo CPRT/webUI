@@ -4,7 +4,6 @@ import VideoCustomPresetForm from "../VideoCustomPresetForm";
 import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
 import VideoPresetsPanel from "../VideoPresetsPanel";
-import RtpStats from "../RtpStats";
 import toast from "react-hot-toast";
 
 export interface VideoSource {
@@ -277,7 +276,6 @@ const VideoControls: React.FC = () => {
               <VideoPresetsPanel onPresetSelect={(name, preset) => newPreset(name, preset)} />
             </div>
           </div>
-          <RtpStats />
         </div>
 
         <div style={{ height: "100%", overflow: "auto", flex: 1, minWidth: 0 }}>
