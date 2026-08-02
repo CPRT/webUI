@@ -77,7 +77,11 @@ const VideoControls: React.FC = () => {
     console.log("Stream restart triggered");
   };
 
-  const callVideoCaptureService = (serviceName: string, filename: string = "") => {
+  const callVideoCaptureService = (
+    serviceName: string,
+    filename: string = "",
+    imageWindow?: Window | null
+  ) => {
     if (!ros || rosStatus !== "connected") return;
 
     const client = new ROSLIB.Service({
@@ -93,13 +97,15 @@ const VideoControls: React.FC = () => {
     client.callService(request, (response: any) => {
       if (!response.success) {
         console.error(`Service ${serviceName} failed`);
+        imageWindow?.close();
         return;
       }
 
       const imageData = response.image?.data;
 
-      if (!imageData) {
+      if (!imageData || imageData.length === 0) {
         console.error("No image data returned");
+        imageWindow?.close();
         return;
       }
 
@@ -108,15 +114,51 @@ const VideoControls: React.FC = () => {
           ? Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0))
           : new Uint8Array(imageData);
 
-      const blob = new Blob([bytes], { type: "image/jpeg" });
+      const format = response.image?.format?.toLowerCase();
+      const mimeType = format === "png" ? "image/png" : "image/jpeg";
+
+      const blob = new Blob([bytes], { type: mimeType });
       const url = URL.createObjectURL(blob);
 
-      const win = window.open();
+      const win = imageWindow ?? window.open();
+
       if (win) {
-        win.document.write(`<img src="${url}" style="max-width:100%">`);
+        win.document.open();
+        win.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Captured Image</title>
+              <style>
+                html, body {
+                  margin: 0;
+                  width: 100%;
+                  height: 100%;
+                  background: #111;
+                }
+
+                body {
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                }
+
+                img {
+                  max-width: 100%;
+                  max-height: 100%;
+                  object-fit: contain;
+                }
+              </style>
+            </head>
+            <body>
+              <img src="${url}">
+            </body>
+          </html>
+        `);
+        win.document.close();
       }
 
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
     });
   };
   const onSnapshot = () => {
