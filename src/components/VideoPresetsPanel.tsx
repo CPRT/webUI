@@ -14,6 +14,10 @@ type VideoPreset = {
   sources: VideoSource[];
 }
 
+type VideoPresetsMessage = {
+  presets: VideoPreset[];
+}
+
 const VideoPresetsPanel: React.FC<VideoPresetsPanelProps> = ({
   onPresetSelect,
 }) => {
@@ -31,23 +35,30 @@ const VideoPresetsPanel: React.FC<VideoPresetsPanelProps> = ({
   });
 
   useEffect(() => {
-    if (!ros) {
-      console.error("ROS connection is not established.");
+    if (!ros || rosStatus !== "connected") {
+      setPresets([]);
       return;
     }
-    const getPresetsClient = new ROSLIB.Service({
-      ros: ros,
-      name: "/list_presets",
-      serviceType: "interfaces/srv/GetPresets",
+
+    const presetsTopic = new ROSLIB.Topic({
+      ros,
+      name: "/video_presets",
+      messageType: "interfaces/msg/VideoPresets",
+      queue_size: 1,
     });
 
-    const request = new ROSLIB.ServiceRequest({});
-    getPresetsClient.callService(request, (response) => {
-      if (response) {
-        setPresets(response.presets);
-      }
-    });
-  }, [ros]);
+    const handlePresets = (message: ROSLIB.Message) => {
+      const presetsMessage = message as unknown as VideoPresetsMessage;
+      setPresets(presetsMessage.presets ?? []);
+    };
+
+    presetsTopic.subscribe(handlePresets);
+
+    return () => {
+      presetsTopic.unsubscribe(handlePresets);
+    };
+  }, [ros, rosStatus]);
+
   return (
     <div
       style={{
