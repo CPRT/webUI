@@ -4,14 +4,74 @@ import React, { useEffect, useRef, useState } from 'react';
 import ROSLIB from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
+const LEFT_HEADLIGHT_COOKIE = 'left_headlight_brightness';
+const RIGHT_HEADLIGHT_COOKIE = 'right_headlight_brightness';
+const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24; // 1 day
+// Human perception of brightness is not linear. 
+// This is a common gamma value to correct for perceived brightness.
+const BRIGHTNESS_GAMMA = 2.2;
+
+const clampBrightness = (value: number) => {
+  return Math.min(100, Math.max(0, value));
+};
+
+const getCookieNumber = (name: string, fallback: number) => {
+  const cookie = document.cookie
+    .split('; ')
+    .find((entry) => entry.startsWith(`${name}=`));
+
+  if (!cookie) return fallback;
+
+  const value = Number(decodeURIComponent(cookie.split('=')[1]));
+
+  if (!Number.isFinite(value)) return fallback;
+
+  return clampBrightness(value);
+};
+
+const setCookieNumber = (name: string, value: number) => {
+  document.cookie =
+    `${name}=${encodeURIComponent(value)}; ` +
+    `max-age=${COOKIE_MAX_AGE_SECONDS}; path=/; SameSite=Lax`;
+};
+
+const perceivedBrightnessToPWM = (brightness: number) => {
+  const normalizedBrightness = clampBrightness(brightness) / 100;
+
+  if (normalizedBrightness <= 0) return 0;
+
+  return Math.round(
+    Math.pow(normalizedBrightness, BRIGHTNESS_GAMMA) * 100
+  );
+};
+
 const HeadlightControlPanel: React.FC = () => {
   const { ros } = useROS();
 
   const [leftValue, setLeftValue] = useState(0);
   const [rightValue, setRightValue] = useState(0);
+  const [cookiesLoaded, setCookiesLoaded] = useState(false);
 
   const leftTopicRef = useRef<ROSLIB.Topic | null>(null);
   const rightTopicRef = useRef<ROSLIB.Topic | null>(null);
+
+  useEffect(() => {
+    setLeftValue(getCookieNumber(LEFT_HEADLIGHT_COOKIE, 0));
+    setRightValue(getCookieNumber(RIGHT_HEADLIGHT_COOKIE, 0));
+    setCookiesLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!cookiesLoaded) return;
+
+    setCookieNumber(LEFT_HEADLIGHT_COOKIE, leftValue);
+  }, [cookiesLoaded, leftValue]);
+
+  useEffect(() => {
+    if (!cookiesLoaded) return;
+
+    setCookieNumber(RIGHT_HEADLIGHT_COOKIE, rightValue);
+  }, [cookiesLoaded, rightValue]);
 
   useEffect(() => {
     if (!ros) {
@@ -46,20 +106,20 @@ const HeadlightControlPanel: React.FC = () => {
   }, [ros]);
 
   useEffect(() => {
-    if (!ros) return;
+    if (!ros || !cookiesLoaded) return;
 
     leftTopicRef.current?.publish(
       new ROSLIB.Message({
-        data: leftValue,
+        data: perceivedBrightnessToPWM(leftValue),
       })
     );
 
     rightTopicRef.current?.publish(
       new ROSLIB.Message({
-        data: rightValue,
+        data: perceivedBrightnessToPWM(rightValue),
       })
     );
-  }, [ros, leftValue, rightValue]);
+  }, [ros, cookiesLoaded, leftValue, rightValue]);
 
   const allOff = () => {
     setLeftValue(0);
@@ -80,7 +140,7 @@ const HeadlightControlPanel: React.FC = () => {
               value={leftValue}
               onChange={(e) => setLeftValue(Number(e.target.value))}
               className="vertical-slider"
-              disabled={!ros}
+              disabled={!ros || !cookiesLoaded}
             />
           </div>
 
@@ -98,7 +158,7 @@ const HeadlightControlPanel: React.FC = () => {
               value={rightValue}
               onChange={(e) => setRightValue(Number(e.target.value))}
               className="vertical-slider"
-              disabled={!ros}
+              disabled={!ros || !cookiesLoaded}
             />
           </div>
 
@@ -106,7 +166,11 @@ const HeadlightControlPanel: React.FC = () => {
         </div>
       </div>
 
-      <button className="off-button" onClick={allOff} disabled={!ros}>
+      <button
+        className="off-button"
+        onClick={allOff}
+        disabled={!ros || !cookiesLoaded}
+      >
         All Off
       </button>
 
