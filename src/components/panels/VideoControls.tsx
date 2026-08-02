@@ -22,6 +22,20 @@ interface VideoOutResponse {
   success: boolean;
 }
 
+interface CapturePanoramaFeedback {
+  current_image: number;
+  total_images: number;
+  status: string;
+}
+
+interface CapturePanoramaResult {
+  success: boolean;
+  image: {
+    data: string | number[];
+    format: string;
+  };
+}
+
 const VideoControls: React.FC = () => {
   const { ros, connectionStatus: rosStatus } = useROS();
 
@@ -77,6 +91,29 @@ const VideoControls: React.FC = () => {
     console.log("Stream restart triggered");
   };
 
+  const openImage = (imageData: string | number[], format: string = "jpeg") => {
+    const bytes =
+      typeof imageData === "string"
+        ? Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0))
+        : new Uint8Array(imageData);
+
+    const imageFormat = format.toLowerCase();
+    const mimeType =
+      imageFormat === "png"
+        ? "image/png"
+        : "image/jpeg";
+
+    const blob = new Blob([bytes], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+
+    const win = window.open();
+    if (win) {
+      win.document.write(`<img src="${url}" style="max-width:100%">`);
+    }
+
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  };
+
   const callVideoCaptureService = (serviceName: string, filename: string = "") => {
     if (!ros || rosStatus !== "connected") return;
 
@@ -93,6 +130,7 @@ const VideoControls: React.FC = () => {
     client.callService(request, (response: any) => {
       if (!response.success) {
         console.error(`Service ${serviceName} failed`);
+        toast.error("Failed to capture snapshot");
         return;
       }
 
@@ -100,30 +138,91 @@ const VideoControls: React.FC = () => {
 
       if (!imageData) {
         console.error("No image data returned");
+        toast.error("No image data returned");
         return;
       }
 
-      const bytes =
-        typeof imageData === "string"
-          ? Uint8Array.from(atob(imageData), (c) => c.charCodeAt(0))
-          : new Uint8Array(imageData);
-
-      const blob = new Blob([bytes], { type: "image/jpeg" });
-      const url = URL.createObjectURL(blob);
-
-      const win = window.open();
-      if (win) {
-        win.document.write(`<img src="${url}" style="max-width:100%">`);
-      }
-
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
+      openImage(imageData, response.image.format);
     });
   };
+
+    const callPanoramicAction = (filename: string = "") => {
+    if (!ros || rosStatus !== "connected") return;
+
+    const actionClient = new ROSLIB.ActionClient({
+      ros,
+      serverName: "/capture_panoramic",
+      actionName: "interfaces/action/CapturePanorama",
+    });
+
+    const goal = new ROSLIB.Goal({
+      actionClient,
+      goalMessage: {
+        filename,
+      },
+    });
+
+    const toastId = toast.loading("Starting panoramic capture");
+
+    goal.on("feedback", (feedback: CapturePanoramaFeedback) => {
+      console.log(
+        `Panoramic feedback: ${feedback.current_image}/${feedback.total_images} - ${feedback.status}`
+      );
+
+      toast.loading(
+        `${feedback.status} (${feedback.current_image}/${feedback.total_images})`,
+        {
+          id: toastId,
+        }
+      );
+    });
+
+    goal.on("result", (result: CapturePanoramaResult) => {
+      actionClient.dispose();
+
+      if (!result.success) {
+        console.error("Panoramic action failed");
+        toast.error("Failed to capture panorama", {
+          id: toastId,
+        });
+        return;
+      }
+
+      const imageData = result.image?.data;
+
+      if (!imageData || imageData.length === 0) {
+        console.error("No panoramic image data returned");
+        toast.error("No panoramic image data returned", {
+          id: toastId,
+        });
+        return;
+      }
+
+      toast.success("Panoramic capture completed", {
+        id: toastId,
+      });
+
+      openImage(imageData, result.image.format);
+    });
+
+    goal.on("timeout", () => {
+      actionClient.dispose();
+
+      console.error("Panoramic action timed out");
+      toast.error("Panoramic capture timed out", {
+        id: toastId,
+      });
+    });
+
+    goal.send();
+  };
+
   const onSnapshot = () => {
     callVideoCaptureService("/capture_frame");
   };
+
   const onPanoramic = () => {
-    callVideoCaptureService("/capture_panoramic");
+    callPanoramicAction();
   };
 
   const setFramerate = (framerate: number) => {
