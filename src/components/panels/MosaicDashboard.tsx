@@ -28,6 +28,7 @@ import WebRTCClient from './WebRTCClient';
 import TimerPanel from './TimerPanel';
 import HeadlightControlPanel from './HeadlightControlPanel';
 import MorseTransmissionPanel from './MorseTransmissionPanel';
+import TopicEchoPanel from './TopicEchoPanel';
 
 import { ROVER_IP } from '@/constants';
 
@@ -51,6 +52,7 @@ type TileType =
   | 'timerPanel'
   | 'headlightControlPanel'
   | 'morseTransmissionPanel'
+  | 'echoPanel'
   ;
 
 type TileId = `${TileType}:${number}`;
@@ -75,6 +77,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   timerPanel: 'Multi-Timer',
   headlightControlPanel: 'Headlights',
   morseTransmissionPanel: 'Morse Transmission',
+  echoPanel: 'Topic Echo',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -97,6 +100,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'timerPanel',
   'headlightControlPanel',
   'morseTransmissionPanel',
+  'echoPanel',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -476,6 +480,13 @@ const MosaicDashboard: React.FC = () => {
             <MorseTransmissionPanel />
           </MosaicWindow>
         );
+      case 'echoPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <TopicEchoPanel />
+          </MosaicWindow>
+        );
+
       default:
         return <div>Unknown tile</div>;
     }
