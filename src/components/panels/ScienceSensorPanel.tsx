@@ -159,7 +159,7 @@ const ScienceSensorPanel: React.FC = () => {
     };
   }, [ros]);
 
-  const latestValue = selectedSensor == 'co2' ? 
+  const latestValue = selectedSensor === 'co2' ? 
       (co2.length > 0 ? co2[co2.length - 1][selectedSensor] : null)
     : (adc.length > 0 ? adc[adc.length - 1][selectedSensor] : null);
 
