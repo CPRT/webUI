@@ -10,6 +10,7 @@ const MorseTransmissionPanel: React.FC = () => {
 
   const [message, setMessage] = useState('');
   const [lastSent, setLastSent] = useState<string | null>(null);
+  const [receivedText, setReceivedText] = useState('');
   const [detectionType, setDetectionType] = useState<DetectionType | null>(null);
   const [updating, setUpdating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -20,6 +21,7 @@ const MorseTransmissionPanel: React.FC = () => {
     if (!ros) {
       topicRef.current = null;
       setDetectionType(null);
+      setReceivedText('');
       return;
     }
 
@@ -29,6 +31,19 @@ const MorseTransmissionPanel: React.FC = () => {
       messageType: 'std_msgs/msg/String',
     });
 
+    const morseTextTopic = new ROSLIB.Topic({
+      ros,
+      name: '/morse_text',
+      messageType: 'std_msgs/msg/String',
+    });
+
+    const handleMorseText = (msg: ROSLIB.Message) => {
+      const data = (msg as { data?: string }).data;
+      setReceivedText(typeof data === 'string' ? data : '');
+    };
+
+    morseTextTopic.subscribe(handleMorseText);
+
     return () => {
       try {
         topicRef.current?.unadvertise();
@@ -36,6 +51,7 @@ const MorseTransmissionPanel: React.FC = () => {
         // ignore
       }
       topicRef.current = null;
+      morseTextTopic.unsubscribe(handleMorseText);
     };
   }, [ros]);
 
@@ -176,6 +192,18 @@ const MorseTransmissionPanel: React.FC = () => {
           Start Detection
         </button>
         </div>
+        <div className="received-row">
+          <label htmlFor="morse-text-received">Received text</label>
+          <input
+            id="morse-text-received"
+            type="text"
+            className="input"
+            value={receivedText}
+            readOnly
+            disabled={disabled}
+            placeholder="Waiting for /morse_text..."
+          />
+        </div>
       </div>
 
       {lastSent && <div className="last-sent">Last sent: {lastSent}</div>}
@@ -227,6 +255,16 @@ const MorseTransmissionPanel: React.FC = () => {
         }
         .toggle-row input:disabled {
           cursor: not-allowed;
+        }
+        .received-row {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+          margin-top: 0.75rem;
+        }
+        .received-row label {
+          color: #d6d6d6;
+          font-size: 0.9rem;
         }
         .input {
           flex: 1;
