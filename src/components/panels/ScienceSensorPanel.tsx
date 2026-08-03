@@ -62,7 +62,7 @@ const SENSOR_OPTIONS: {
     key: 'adc3',
     label: 'ADC 3',
     color: '#ff4d4d',
-    unit: '°C',
+    unit: '',
   },
 ];
 
@@ -191,7 +191,7 @@ const ScienceSensorPanel: React.FC = () => {
       <div className="header">
         <div>
           <h3>Science Sensor Reading</h3>
-          <p className="sensor-name">Temperature: {temp?.temperature?.toFixed(1)} deg C    Humidity: {temp?.humidity?.toFixed(1)}%</p>
+          <p className="sensor-name">Temperature: {temp?.temperature?.toFixed(1)}°C    Humidity: {temp?.humidity?.toFixed(1)}%</p>
           <p className="latest-value">
             {selectedOption.label}: {latestValue !== null ? formatValue(latestValue) : '--'}
           </p>

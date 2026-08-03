@@ -70,11 +70,11 @@ interface MotorStatus {
 const DEFAULT_RAMP = 0;
 
 const motors: MotorConfig[] = [
-  { id: 1, name: 'Strip', defaultTime: 10.0, defaultDuty: 100 },
+  { id: 2, name: 'Strip', defaultTime: 10.0, defaultDuty: 100 },
   { id: 0, name: 'Resin Pump', defaultTime: 2.5, defaultDuty: 100 },
   { id: 5, name: 'Polar', defaultTime: 1.5, defaultDuty: 100 },
-  { id: 4, name: 'Benedict', defaultTime: 2.5, defaultDuty: 100 },
-  { id: 2, name: 'Stirrer', defaultTime: 10.0, defaultDuty: 50 },
+  { id: 4, name: 'Benedict', defaultTime: 8, defaultDuty: 100 },
+  { id: 1, name: 'Stirrer', defaultTime: 10.0, defaultDuty: 50 },
   { id: 6, name: 'Heater', defaultTime: 20.0, defaultDuty: 75 },
 ]
 
