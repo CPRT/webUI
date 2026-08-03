@@ -14,13 +14,11 @@ interface RunPolarimeterResponse {
   file_path: string;
 }
 
-type DCMotorConfig = {
+type MotorConfig = {
   id: number;
   name: string;
   defaultTime: number;
   defaultDuty: number;
-  frequency: number;
-  type: 'dc';
 };
 
 type ServoConfig = {
@@ -30,73 +28,77 @@ type ServoConfig = {
   minPulseUs: number;
   maxPulseUs: number;
   maxDegrees: number;
-  frequency: number;
-  type: 'servo';
 };
 
-type MotorConfig = DCMotorConfig | ServoConfig;
-
-type SendCommandFn = (
+type SendMotorFn = (
   motorID: number,
-  type: number,
   value: number,
   duration?: number,
-  frequency?: number,
   ramp?: number
 ) => void;
 
-type DCMotorProps = {
-  motor: DCMotorConfig;
-  sendCommand: SendCommandFn;
+type SendServoFn = (
+  motorID: number,
+  value: number,
+) => void;
+
+type MotorProps = {
+  motor: MotorConfig;
+  sendCommand: SendMotorFn;
   disabled: boolean;
 };
 
 type ServoMotorProps = {
   motor: ServoConfig;
-  sendCommand: SendCommandFn;
+  sendCommand: SendServoFn;
   disabled: boolean;
 };
 
-const TYPE_DC = 0;
-const TYPE_SERVO = 1;
-
-function isDCMotor(motor: MotorConfig): motor is DCMotorConfig {
-  return motor.type === 'dc';
+interface MotorStatus {
+  temperature: number;
+  bus_voltage: number;
+  output_percent: number;
+  output_voltage: number;
+  output_current: number;
+  position: number;
+  velocity: number;
+  fwd_limit: boolean;
+  rev_limit: boolean;
+  active_errors: number;
 }
 
-const PWM_MAX = 1023;
-const DEFAULT_PWM_FREQUENCY = 50;
 const DEFAULT_RAMP = 0;
 
 const motors: MotorConfig[] = [
-  { id: 18, name: 'Strip', defaultTime: 3.0, defaultDuty: 50, frequency: 2000, type: 'dc' },
-  { id: 23, name: 'Resin Pump', defaultTime: 2.5, defaultDuty: 50, frequency: 2000, type: 'dc' },
-  { id: 22, name: 'Polar', defaultTime: 1.5, defaultDuty: 50, frequency: 2000, type: 'dc' },
-  { id: 21, name: 'Benedict', defaultTime: 2.5, defaultDuty: 50, frequency: 2000, type: 'dc' },
-  { id: 19, name: 'Stirrer', defaultTime: 10.0, defaultDuty: 75, frequency: 2000, type: 'dc' },
-  { id: 16, name: 'Heater', defaultTime: 10.0, defaultDuty: 75, frequency: 2000, type: 'dc' },
+  { id: 2, name: 'Strip', defaultTime: 10.0, defaultDuty: 100 },
+  { id: 0, name: 'Resin Pump', defaultTime: 2.5, defaultDuty: 100 },
+  { id: 5, name: 'Polar', defaultTime: 1.5, defaultDuty: 100 },
+  { id: 4, name: 'Benedict', defaultTime: 8, defaultDuty: 100 },
+  { id: 1, name: 'Stirrer', defaultTime: 10.0, defaultDuty: 50 },
+  { id: 6, name: 'Heater', defaultTime: 20.0, defaultDuty: 75 },
+]
 
+const servos: ServoConfig[] = [
   {
-    id: 13,
+    id: 2,
     name: 'Disk Servo',
     defaultPosition: 90,
     minPulseUs: 615,
     maxPulseUs: 2495,
     maxDegrees: 195,
-    frequency: 50,
-    type: 'servo',
   },
   {
-    id: 32,
+    id: 0,
     name: 'Resin Servo',
     defaultPosition: 45,
     minPulseUs: 350,
     maxPulseUs: 2500,
     maxDegrees: 360,
-    frequency: 50,
-    type: 'servo',
   }
 ];
+
+const CM_PER_TICK = 0.15 / 13 / 4096; // 1.5 mm pitch thread, 1:13 gear ratio, 12-bit encoder
+const DRILL_HEIGHT = 30;
 
 // --------------------
 // Panel
@@ -106,49 +108,58 @@ const ScienceControlPanel: React.FC = () => {
 
   const [title, setTitle] = useState<string>("");
   const [polarStatus, setPolarStatus] = useState<string>("");
+  const [drill, setDrill] = useState<MotorStatus>();
+  const [elevator, setElevator] = useState<MotorStatus>();
+  const [zero, setZero] = useState<number>(0); // TODO: Service for resetting talon encoder estimate
 
-  const sendCommand: SendCommandFn = (
+  const sendMotor: SendMotorFn = (
     motorID,
-    type,
     value,
     duration,
-    frequency,
     ramp = DEFAULT_RAMP
   ) => {
     if (!ros) return;
 
-    const safeDurationMs = Math.round(
-      Math.min(Math.max(duration ?? 0, 0), 65.535) * 10
+    const safeDuration = Math.round(
+      Math.min(Math.max(duration ?? 0, 0), 6553.5) * 10
     );
 
-    const safeDutyPercent = Math.min(Math.max(value, 0), 100);
-    const dutyCycle = Math.round((safeDutyPercent / 100) * PWM_MAX);
+    const dutyCycle = Math.min(Math.max(value, 0), 100);
 
     const topic = new ROSLIB.Topic({
       ros,
-      name: '/esp_pwm_command',
-      messageType: 'interfaces/msg/PwmCommand',
+      name: '/science/motor',
+      messageType: 'interfaces/msg/ScienceMotor',
     });
 
     topic.publish(
       new ROSLIB.Message({
         pin: motorID,
-        type: type,
         duty_cycle: dutyCycle,
-        duration: safeDurationMs,
-        frequency,
+        duration: safeDuration,
         ramp,
       })
     );
+  };
 
-    console.log('[SCIENCE PWM CMD]', {
-      pin: motorID,
-      type: type,
-      duty_cycle: dutyCycle,
-      duration: safeDurationMs,
-      frequency,
-      ramp,
+  const sendServo: SendServoFn = (
+    motorID,
+    value,
+  ) => {
+    if (!ros) return;
+
+    const topic = new ROSLIB.Topic({
+      ros,
+      name: '/science/servo',
+      messageType: 'interfaces/msg/ScienceServo',
     });
+
+    topic.publish(
+      new ROSLIB.Message({
+        pin: motorID,
+        us: value,
+      })
+    );
   };
 
   const handlePolar = () => {
@@ -158,7 +169,7 @@ const ScienceControlPanel: React.FC = () => {
 
     const polarSrv = new ROSLIB.Service({
       ros,
-      name: "/run_polarimeter",
+      name: "/science/run_polarimeter",
       serviceType: "interfaces/srv/RunPolarimeter",
     });
 
@@ -170,22 +181,75 @@ const ScienceControlPanel: React.FC = () => {
     );
   };
 
+  useEffect(() => {
+    if (!ros) return;
+
+    const drillTopic = new ROSLIB.Topic({
+      ros,
+      name: '/drill/status',
+      messageType: 'ros_phoenix/msg/MotorStatus',
+    });
+
+    const handleDrillReading = (msg: any) => {
+      setDrill(msg as MotorStatus);
+    };
+
+    drillTopic.subscribe(handleDrillReading);
+
+    return () => {
+      drillTopic.unsubscribe(handleDrillReading);
+    };
+  }, [ros]);
+
+  useEffect(() => {
+    if (!ros) return;
+
+    const elevatorTopic = new ROSLIB.Topic({
+      ros,
+      name: '/elevator/status',
+      messageType: 'ros_phoenix/msg/MotorStatus',
+    });
+
+    const handleElevatorReading = (msg: any) => {
+      setElevator(msg as MotorStatus);
+    };
+
+    elevatorTopic.subscribe(handleElevatorReading);
+
+    return () => {
+      elevatorTopic.unsubscribe(handleElevatorReading);
+    };
+  }, [ros]);
+
   return (
     <div className="panel">
+      <div className="drill-info">
+        <div style={{ float: "left" }}>
+          <button style={{ marginRight: '10px' }} onClick={() => {setZero(elevator?.position ?? 0)}}>Set Fully UP</button>
+          <span style={{ paddingRight: '20px' }}>Drill Height: <span className='drill-reading'>{(DRILL_HEIGHT - (((elevator?.position ?? 0) - zero) * CM_PER_TICK)).toFixed(2)}</span> cm above ground</span>
+          <span style={{ paddingRight: '20px' }}>Drill Current: <span className='drill-reading'>{drill?.output_current?.toFixed(2) ?? '--'}</span> A</span>
+          <span>Drill Percent: <span className='drill-reading'>{((drill?.output_percent ?? 0) * 100).toFixed(0)}</span>%</span>
+        </div>
+        <div style={{ float: "right" }}>
+          <span className='right' style={{ paddingRight: '20px' }}>Elevator Current: <span className='drill-reading'>{elevator?.output_current?.toFixed(2) ?? '--'}</span> A</span>
+          <span className='right'>Elevator Percent: <span className='drill-reading'>{((elevator?.output_percent ?? 0) * 100).toFixed(0)}</span>%</span>
+        </div>
+      </div>
       <div className="motor-grid">
         {motors.map((motor) =>
-          isDCMotor(motor) ? (
             <DCMotor
-              key={`${motor.type}-${motor.id}-${motor.name}`}
+              key={`${motor.id}-${motor.name}`}
               motor={motor}
-              sendCommand={sendCommand}
+              sendCommand={sendMotor}
               disabled={!ros}
             />
-          ) : (
+          )
+        }
+        {servos.map((servo) => (
             <ServoMotor
-              key={`${motor.type}-${motor.id}-${motor.name}`}
-              motor={motor}
-              sendCommand={sendCommand}
+              key={`${servo.id}-${servo.name}`}
+              motor={servo}
+              sendCommand={sendServo}
               disabled={!ros}
             />
           )
@@ -350,6 +414,25 @@ const ScienceControlPanel: React.FC = () => {
           background: #00ffcc;
           transition: width 0.1s linear;
         }
+
+        .drill-info {
+          border: 1px solid #3a3a3a;
+          border-radius: 10px;
+          padding: .75rem;
+          margin-bottom: 1rem;
+          box-shadow: 0 3px 10px rgba(0,0,0,.4);
+          background: linear-gradient(145deg,#2b2b2b,#202020);
+          color: #eaeaea;
+        }
+
+        .right {
+          vertical-align: -moz-middle-with-baseline;
+          vertical-align: -webkit-baseline-middle;
+        }
+
+        .drill-reading {
+          font-weight: 600;
+        }
       `}</style>
     </div>
   );
@@ -358,7 +441,7 @@ const ScienceControlPanel: React.FC = () => {
 // --------------------
 // DC Motor Component
 // --------------------
-const DCMotor: React.FC<DCMotorProps> = ({
+const DCMotor: React.FC<MotorProps> = ({
   motor,
   sendCommand,
   disabled,
@@ -392,17 +475,17 @@ const DCMotor: React.FC<DCMotorProps> = ({
   }, [remaining]);
 
   const handleGo = () => {
-    const safeTime = clamp(time, 0, 65.535);
+    const safeTime = clamp(time, 0, 6553.5);
     const safeDuty = clamp(duty, 0, 100);
 
-    sendCommand(motor.id, TYPE_DC, safeDuty, safeTime, motor.frequency);
+    sendCommand(motor.id, safeDuty, safeTime);
 
     setStartTime(safeTime);
     setRemaining(safeTime);
   };
 
   const handleStop = () => {
-    sendCommand(motor.id, TYPE_DC, 0, 0, motor.frequency);
+    sendCommand(motor.id, 0, 0);
     setRemaining(null);
   };
 
@@ -421,7 +504,7 @@ const DCMotor: React.FC<DCMotorProps> = ({
           type="number"
           step="0.1"
           min="0"
-          max="65.535"
+          max="6553.5"
           value={time}
           disabled={disabled}
           onChange={(e) => setTime(Number(e.target.value))}
@@ -495,12 +578,11 @@ const ServoMotor: React.FC<ServoMotorProps> = ({
   const handleGo = () => {
     const safePos = clamp(position, 0, motor.maxDegrees);
 
-    const pulseUs =
+    const pulseUs = Math.round(
       motor.minPulseUs +
-      (safePos / motor.maxDegrees) * (motor.maxPulseUs - motor.minPulseUs);
+      (safePos / motor.maxDegrees) * (motor.maxPulseUs - motor.minPulseUs));
 
-    const dutyPercent = (pulseUs * motor.frequency / 1000000) * 100;
-    sendCommand(motor.id, TYPE_SERVO, dutyPercent, 0, motor.frequency); 
+    sendCommand(motor.id, pulseUs); 
   };
 
   return (
