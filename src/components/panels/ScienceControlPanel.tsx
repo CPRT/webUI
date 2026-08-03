@@ -97,8 +97,8 @@ const servos: ServoConfig[] = [
   }
 ];
 
-const CM_PER_TICK = 0.15 / 13 / 4096; // 1.5 mm pitch thread, 1:13 gear ratio, 12-bit encoder
-const DRILL_HEIGHT = 30;
+const CM_PER_TICK = 0.15 / 13 / 70; // 1.5 mm pitch thread, 1:13 gear ratio, 12-bit encoder
+const DRILL_HEIGHT = 52;
 
 // --------------------
 // Panel
@@ -226,7 +226,7 @@ const ScienceControlPanel: React.FC = () => {
       <div className="drill-info">
         <div style={{ float: "left" }}>
           <button style={{ marginRight: '10px' }} onClick={() => {setZero(elevator?.position ?? 0)}}>Set Fully UP</button>
-          <span style={{ paddingRight: '20px' }}>Drill Height: <span className='drill-reading'>{(DRILL_HEIGHT - (((elevator?.position ?? 0) - zero) * CM_PER_TICK)).toFixed(2)}</span> cm above ground</span>
+          <span style={{ paddingRight: '20px' }}>Drill Height: <span className='drill-reading'>{(DRILL_HEIGHT + (((elevator?.position ?? 0) - zero) * CM_PER_TICK)).toFixed(2)}</span> cm above ground</span>
           <span style={{ paddingRight: '20px' }}>Drill Current: <span className='drill-reading'>{drill?.output_current?.toFixed(2) ?? '--'}</span> A</span>
           <span>Drill Percent: <span className='drill-reading'>{((drill?.output_percent ?? 0) * 100).toFixed(0)}</span>%</span>
         </div>
