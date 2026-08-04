@@ -1,70 +1,28 @@
 "use client";
 
-import React from "react";
-import { VideoOutRequest } from "./panels/VideoControls";
+import React, { useEffect, useState } from "react";
+import { VideoOutRequest, VideoSource } from "./panels/VideoControls";
+import ROSLIB from "roslib";
+import { useROS } from "@/ros/ROSContext";
 
 interface VideoPresetsPanelProps {
   onPresetSelect: (presetName: string, preset: VideoOutRequest) => void;
 }
 
+type VideoPreset = {
+  name: string;
+  sources: VideoSource[];
+}
+
+type VideoPresetsMessage = {
+  presets: VideoPreset[];
+}
+
 const VideoPresetsPanel: React.FC<VideoPresetsPanelProps> = ({
   onPresetSelect,
 }) => {
-  const presets: { name: string; preset: VideoOutRequest }[] = [
-    {
-      name: "Drive",
-      preset: {
-        num_sources: 1,
-        sources: [{ name: "Drive", width: 100, height: 100, origin_x: 0, origin_y: 0 }],
-      },
-    },
-    {
-      name: "EEF",
-      preset: {
-        num_sources: 1,
-        sources: [{ name: "EndEffector", width: 100, height: 100, origin_x: 0, origin_y: 0 }],
-      },
-    },
-    {
-      name: "Science",
-      preset: {
-        num_sources: 4,
-        sources: [
-          { name: "Microscope", width: 50, height: 50, origin_x: 0, origin_y: 0 },
-          { name: "Strip", width: 50, height: 50, origin_x: 50, origin_y: 0 },
-          { name: "Benedict", width: 50, height: 50, origin_x: 0, origin_y: 50 },
-          { name: "HCL", width: 50, height: 50, origin_x: 50, origin_y: 50 },
-        ],
-      },
-    },
-    {
-      name: "Belly",
-      preset: {
-        num_sources: 1,
-        sources: [{ name: "Bottom", width: 100, height: 100, origin_x: 0, origin_y: 0 }],
-      },
-    },
-    {
-      name: "Drive + EEF",
-      preset: {
-        num_sources: 2,
-        sources: [
-          { name: "Drive", width: 100, height: 100, origin_x: 0, origin_y: 0 },
-          { name: "EndEffector", width: 30, height: 30, origin_x: 70, origin_y: 0 },
-        ],
-      },
-    },
-    {
-      name: "EEF + Drive",
-      preset: {
-        num_sources: 2,
-        sources: [
-          { name: "EndEffector", width: 100, height: 100, origin_x: 0, origin_y: 0 },
-          { name: "Drive", width: 30, height: 30, origin_x: 70, origin_y: 0 },
-        ],
-      },
-    },
-  ];
+  const { ros, connectionStatus: rosStatus } = useROS();
+  const [presets, setPresets] = useState<VideoPreset[]>([]);
 
   const buttonStyle = (): React.CSSProperties => ({
     border: "1px solid #444",
@@ -76,6 +34,31 @@ const VideoPresetsPanel: React.FC<VideoPresetsPanelProps> = ({
     whiteSpace: "nowrap",
   });
 
+  useEffect(() => {
+    if (!ros || rosStatus !== "connected") {
+      setPresets([]);
+      return;
+    }
+
+    const presetsTopic = new ROSLIB.Topic({
+      ros,
+      name: "/video_presets",
+      messageType: "interfaces/msg/VideoPresets",
+      queue_size: 1,
+    });
+
+    const handlePresets = (message: ROSLIB.Message) => {
+      const presetsMessage = message as unknown as VideoPresetsMessage;
+      setPresets(presetsMessage.presets ?? []);
+    };
+
+    presetsTopic.subscribe(handlePresets);
+
+    return () => {
+      presetsTopic.unsubscribe(handlePresets);
+    };
+  }, [ros, rosStatus]);
+
   return (
     <div
       style={{
@@ -85,11 +68,11 @@ const VideoPresetsPanel: React.FC<VideoPresetsPanelProps> = ({
         gap: "0.5rem",
       }}
     >
-      {presets.map(({ name, preset }) => (
+      {presets.map(({ name, sources }) => (
         <button
           key={name}
           style={buttonStyle()}
-          onClick={() => onPresetSelect(name, preset)}
+          onClick={() => onPresetSelect(name, { sources: sources })}
         >
           {name}
         </button>

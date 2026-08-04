@@ -30,12 +30,19 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
   const socketRef = useRef<WebSocket | null>(null);
   const logBoxRef = useRef<HTMLPreElement>(null);
 
-  // Sync status and clear logs/eventMsg when container ID changes (new container after restart)
+  // Keep local status in sync whenever the parent reports a new one
   useEffect(() => {
     setStatusState(option.status);
-    setLogs([]);
+  }, [option.status]);
+
+  useEffect(() => {
     setEventMsg(externalEventMsg);
-  }, [option.id, externalEventMsg, option.status]);
+  }, [externalEventMsg]);
+
+  // Only clear logs when a new container starts (id changes)
+  useEffect(() => {
+    setLogs([]);
+  }, [option.id]);
 
   const handleStart = async () => {
     await onStart(key);

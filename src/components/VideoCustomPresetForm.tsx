@@ -39,7 +39,6 @@ const VideoCustomPresetForm: React.FC<CustomPresetFormProps> = ({ onSubmit }) =>
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const preset: VideoOutRequest = {
-      num_sources: sources.length,
       sources,
     };
     onSubmit(preset);

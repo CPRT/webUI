@@ -28,6 +28,9 @@ import WebRTCClient from './WebRTCClient';
 import TimerPanel from './TimerPanel';
 import HeadlightControlPanel from './HeadlightControlPanel';
 import MorseTransmissionPanel from './MorseTransmissionPanel';
+import RtpStats from './RtpStats';
+import TopicEchoPanel from './TopicEchoPanel';
+import DriveThrottlePanel from './DriveThrottlePanel';
 
 import { ROVER_IP } from '@/constants';
 
@@ -36,11 +39,13 @@ type TileType =
   | 'rosMonitor'
   | 'waypointList'
   | 'videoControls'
+  | 'rtpStats'
   | 'gasSensor'
   | 'orientationDisplay'
   | 'goalSetter'
   | 'networkHealthMonitor'
   | 'motorStatusPanel'
+  | 'driveThrottlePanel'
   | 'nodeStatusPanel'
   | 'antennaControlPanel'
   | 'scienceControlPanel'
@@ -51,6 +56,7 @@ type TileType =
   | 'timerPanel'
   | 'headlightControlPanel'
   | 'morseTransmissionPanel'
+  | 'echoPanel'
   ;
 
 type TileId = `${TileType}:${number}`;
@@ -60,6 +66,8 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   rosMonitor: 'System Telemetry',
   waypointList: 'Waypoint List',
   videoControls: 'Video Stream',
+  rtpStats: 'RTP Statistics',
+  driveThrottlePanel: 'Drive Throttle',
   gasSensor: 'Science',
   orientationDisplay: 'Rover Orientation',
   goalSetter: 'Nav2',
@@ -75,6 +83,7 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   timerPanel: 'Multi-Timer',
   headlightControlPanel: 'Headlights',
   morseTransmissionPanel: 'Morse Transmission',
+  echoPanel: 'Topic Echo',
 };
 
 const ALL_TILE_TYPES: TileType[] = [
@@ -83,6 +92,8 @@ const ALL_TILE_TYPES: TileType[] = [
   'networkHealthMonitor',
   'orientationDisplay',
   'videoControls',
+  'rtpStats',
+  'driveThrottlePanel',
   'waypointList',
   'gasSensor',
   'goalSetter',
@@ -97,6 +108,7 @@ const ALL_TILE_TYPES: TileType[] = [
   'timerPanel',
   'headlightControlPanel',
   'morseTransmissionPanel',
+  'echoPanel',
 ];
 
 function tileTypeOf(id: TileId): TileType {
@@ -369,6 +381,20 @@ const MosaicDashboard: React.FC = () => {
             <VideoControls />
           </MosaicWindow>
         );
+      
+      case 'rtpStats':
+        return (
+          <MosaicWindow {...windowProps}>
+            <RtpStats />
+          </MosaicWindow>
+        );
+
+      case 'driveThrottlePanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <DriveThrottlePanel />
+          </MosaicWindow>
+        );
 
       case 'rosMonitor':
         return (
@@ -476,6 +502,13 @@ const MosaicDashboard: React.FC = () => {
             <MorseTransmissionPanel />
           </MosaicWindow>
         );
+      case 'echoPanel':
+        return (
+          <MosaicWindow {...windowProps}>
+            <TopicEchoPanel />
+          </MosaicWindow>
+        );
+
       default:
         return <div>Unknown tile</div>;
     }

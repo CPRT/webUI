@@ -4,7 +4,7 @@ import VideoCustomPresetForm from "../VideoCustomPresetForm";
 import ROSLIB from "roslib";
 import { useROS } from "@/ros/ROSContext";
 import VideoPresetsPanel from "../VideoPresetsPanel";
-import RtpStats from "../RtpStats";
+import toast from "react-hot-toast";
 
 export interface VideoSource {
   name: string;
@@ -15,7 +15,6 @@ export interface VideoSource {
 }
 
 export interface VideoOutRequest {
-  num_sources: number;
   sources: VideoSource[];
 }
 
@@ -23,9 +22,6 @@ interface VideoOutResponse {
   success: boolean;
 }
 
-interface VideoOutResponse {
-  success: boolean;
-}
 const VideoControls: React.FC = () => {
   const { ros, connectionStatus: rosStatus } = useROS();
 
@@ -63,7 +59,9 @@ const VideoControls: React.FC = () => {
     startVideoSrv.callService(
       new ROSLIB.ServiceRequest(camRequest),
       (response: VideoOutResponse) => {
-        console.log(response.success ? "Success" : "Failed");
+        if (!response.success) {
+          toast.error("Failed to select preset: " + presetName)
+        }
       },
     );
   };
@@ -78,6 +76,7 @@ const VideoControls: React.FC = () => {
     topic.publish(new ROSLIB.Message({}));
     console.log("Stream restart triggered");
   };
+
   const callVideoCaptureService = (serviceName: string, filename: string = "") => {
     if (!ros || rosStatus !== "connected") return;
 
@@ -277,7 +276,6 @@ const VideoControls: React.FC = () => {
               <VideoPresetsPanel onPresetSelect={(name, preset) => newPreset(name, preset)} />
             </div>
           </div>
-          <RtpStats />
         </div>
 
         <div style={{ height: "100%", overflow: "auto", flex: 1, minWidth: 0 }}>
