@@ -5,6 +5,30 @@ import { useCountdown } from '@/hooks/useCountdown';
 
 const DEFAULT_PRESET_MS = 4 * 60 * 1000;
 
+type TimerVariant = 'order' | 'ingredient';
+
+const DEFAULT_COLOR = '#00ffcc';
+const FINISHED_COLOR = '#ff5566';
+
+// Ordered smallest-threshold-first so the first match wins.
+const COLOR_THRESHOLDS_MS: Record<TimerVariant, { maxMs: number; color: string }[]> = {
+  order: [
+    { maxMs: 42 * 1000, color: '#ff5566' }, // red
+    { maxMs: 90 * 1000, color: '#ff8c1a' }, // orange
+    { maxMs: 4 * 60 * 1000, color: '#ffcc00' }, // yellow
+  ],
+  ingredient: [
+    { maxMs: 35 * 1000, color: '#ff5566' }, // red
+    { maxMs: 60 * 1000, color: '#ffcc00' }, // yellow
+  ],
+};
+
+function countdownColorFor(variant: TimerVariant, remainingMs: number, isFinished: boolean): string {
+  if (isFinished) return FINISHED_COLOR;
+  const threshold = COLOR_THRESHOLDS_MS[variant].find((t) => remainingMs <= t.maxMs);
+  return threshold?.color ?? DEFAULT_COLOR;
+}
+
 function formatMmSs(ms: number): string {
   const totalSeconds = Math.max(0, Math.round(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
@@ -28,9 +52,10 @@ interface TimerCardProps {
   label: string;
   onLabelChange?: (label: string) => void;
   onRemove?: () => void;
+  variant?: TimerVariant;
 }
 
-const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove }) => {
+const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove, variant = 'ingredient' }) => {
   const { status, remainingMs, start, pause, resume, reset } = useCountdown();
 
   const [presetMs, setPresetMs] = useState(DEFAULT_PRESET_MS);
@@ -42,13 +67,7 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove })
   const isPaused = status === 'paused';
   const isFinished = status === 'finished';
 
-  const countdownColor = isFinished
-    ? '#ff5566'
-    : remainingMs <= 30 * 1000
-      ? '#ff5566'
-      : remainingMs <= 60 * 1000
-        ? '#ffcc00'
-        : '#00ffcc';
+  const countdownColor = countdownColorFor(variant, remainingMs, isFinished);
 
   const handleGo = () => {
     const parsedMs = parseMmSs(inputText);
@@ -165,7 +184,7 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove })
         .label-input {
           margin: 0;
           padding: 0.15rem 0.3rem;
-          font-size: 0.95rem;
+          font-size: 1.5rem;
           font-weight: 600;
           color: #eaeaea;
           background: transparent;
