@@ -179,6 +179,7 @@ const MotorStatusPanel: React.FC = () => {
     <div className="motor-panel">
       <button
         className="reset-button"
+        style={{ fontWeight: "600", border: "1px solid red" }}
         disabled={!ros}
         onClick={handleResetAll}
       >
@@ -263,6 +264,7 @@ const MotorStatusPanel: React.FC = () => {
 
         .motor-table td {
           border-bottom: 1px solid #333;
+          padding: 0px 3px;
         }
 
         .motor-table tbody tr:hover {
