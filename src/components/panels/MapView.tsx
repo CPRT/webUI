@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import React, { useEffect, useState, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, ScaleControl } from 'react-leaflet';
 import L from 'leaflet';
 import antennaMarker from "@/../public/satellite-dish.svg";
 import { useWaypoints, LatLngTuple } from '@/contexts/WaypointContext';
@@ -12,6 +12,7 @@ import MapCompass from '../MapCompass';
 import { useROS } from '@/ros/ROSContext';
 import ROSLIB from 'roslib';
 import { TILING_SERVER } from '@/constants';
+import html2canvas from 'html2canvas';
 
 const DEFAULT_MAP_CENTER: LatLngTuple = [38.405884, -110.791719];
 
@@ -50,6 +51,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
   const [antennaLoc, setAntennaLoc] = useState<LatLngTuple>(DEFAULT_MAP_CENTER);
   const [antennaHead, setAntennaHead] = useState<number>(0);
   const { waypoints } = useWaypoints();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!ros) return;
@@ -100,8 +102,26 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
     };
 
   }, [ros]);
+  
+  const downloadPNG = async () => {
+    console.log("Download PNG")
+    if (!containerRef.current) return;
 
+    console.log("Download PNG 2")
+    const canvas = await html2canvas(containerRef.current, {
+      backgroundColor: '#181818',
+    });
+
+    console.log("Download PNG 3")
+    const link = document.createElement('a');
+    link.download = `cprt-map.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    console.log("Download PNG 4")
+  };
+  
   return (
+<div ref={containerRef} style={{ height: "100%" }}>
     <MapContainer
       center={DEFAULT_MAP_CENTER}
       zoom={15}
@@ -113,6 +133,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
         url={offline? `http://${TILING_SERVER}/{z}/{x}/{y}.png` : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"}
         attribution="&copy; Maptiler server"
       />
+      <ScaleControl position="bottomright" maxWidth={200} />
       <MapInteractionHandler />
       <Marker position={droneLoc} icon={getCustomIcon("#4657F2")}/>
       <Marker position={antennaLoc} icon={getAntennaIcon(antennaHead)}/>
@@ -149,7 +170,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
           fontSize: '0.9rem',
           maxWidth: '300px',
         }}>
-        <BreadcrumbTrail />
+        <BreadcrumbTrail downloadPNG={downloadPNG} />
         <WaypointCreatorWindow />
       </div>
       <div
@@ -166,6 +187,7 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
         <MapCompass/>
       </div>
     </MapContainer>
+</div>
   );
 };
 
