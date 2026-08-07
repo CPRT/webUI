@@ -99,7 +99,7 @@ const PDBRailsPanel: React.FC = () => {
           </thead>
           <tbody>
             {LABELS.map((r, idx) => (
-              <tr className={failBorder(idx)}>
+              <tr className={failBorder(idx)} key={idx}>
                 <td>
                   {r}
                 </td>
