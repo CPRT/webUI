@@ -5,7 +5,6 @@ import { Circle, Polyline, useMap } from 'react-leaflet';
 import { useROS } from '@/ros/ROSContext';
 import { useWaypoints } from '@/contexts/WaypointContext';
 import ROSLIB from 'roslib';
-import L from 'leaflet'
 
 interface Breadcrumb {
   coordinate: [number, number];
@@ -14,7 +13,11 @@ interface Breadcrumb {
   altitude?: number;
 }
 
-const BreadcrumbTrail: React.FC = () => {
+type BreadcrumbTrailProps = {
+  downloadPNG: Function,
+}
+
+const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
   const map = useMap();
   const { ros, connectionStatus } = useROS();
   const { addWaypoint } = useWaypoints();
@@ -221,6 +224,19 @@ const BreadcrumbTrail: React.FC = () => {
             }}
           >
             Re-center
+          </button>
+          <button
+            onClick={downloadPNG}
+            style={{
+              padding: '0.25rem 0.5rem',
+              backgroundColor: '#b84dff',
+              border: 'none',
+              borderRadius: '4px',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            PNG
           </button>
         </div>
         {lastFix && (
