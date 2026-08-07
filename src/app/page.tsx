@@ -1,6 +1,7 @@
 'use client';
 
 import Layout from '@/components/Layout';
+import { direction } from 'html2canvas/dist/types/css/property-descriptors/direction';
 
 const names = ["Default", "Arm Operation", "Debug", "Auxiliary", "Science"];
 const colors = ['#0070f3', '#28a745', '#dc3545', '#ffc107', '#17a2b8'];
@@ -83,7 +84,12 @@ const layouts = [
     second: {
       direction: 'row',
       first: 'webRTCClient:4',
-      second: 'nodeStatusPanel:5',
+      second: {
+        direction: 'column',
+        first: 'nodeStatusPanel:5',
+        second: 'rosMonitor:6',
+        splitPercentage: 70
+      },
       splitPercentage: 70,
     },
     splitPercentage: 30,

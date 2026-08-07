@@ -18,6 +18,8 @@ interface TelemetryData {
   cpu_usage: number;
   mem_usage: number;
   gpu_usage: number;
+  core_temp: number;
+  case_temp: number;
 }
 
 const SystemTelemetryPanel: React.FC = () => {
@@ -39,6 +41,8 @@ const SystemTelemetryPanel: React.FC = () => {
         cpu_usage: msg.cpu_usage,
         mem_usage: msg.mem_usage,
         gpu_usage: msg.gpu_usage,
+        core_temp: msg.core_temp,
+        case_temp: msg.case_temp,
       };
 
       // circular buffer, size 30
@@ -72,6 +76,8 @@ const SystemTelemetryPanel: React.FC = () => {
             <Line type="monotone" dataKey="cpu_usage" stroke="#0070f3" name="CPU" dot={false} />
             <Line type="monotone" dataKey="mem_usage" stroke="#28a745" name="Memory" dot={false} />
             <Line type="monotone" dataKey="gpu_usage" stroke="#ff8800" name="GPU" dot={false} />
+            <Line type="monotone" dataKey="core_temp" stroke="#dc3545" name="Core Temp (C)" dot={false} />
+            <Line type="monotone" dataKey="case_temp" stroke="#17a2b8" name="Case Temp (C)" dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
