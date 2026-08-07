@@ -179,7 +179,7 @@ const MotorStatusPanel: React.FC = () => {
     <div className="motor-panel">
       <button
         className="reset-button"
-        style={{ fontWeight: "600", border: "1px solid red" }}
+        style={{ fontWeight: "600", border: "1px solid red", margin: "5px" }}
         disabled={!ros}
         onClick={handleResetAll}
       >
