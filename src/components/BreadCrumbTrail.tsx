@@ -225,19 +225,6 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
           >
             Re-center
           </button>
-          <button
-            onClick={downloadPNG}
-            style={{
-              padding: '0.25rem 0.5rem',
-              backgroundColor: '#b84dff',
-              border: 'none',
-              borderRadius: '4px',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            PNG
-          </button>
         </div>
         {lastFix && (
           <button
