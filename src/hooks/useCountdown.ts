@@ -15,11 +15,33 @@ export interface UseCountdownResult {
   reset: () => void;
 }
 
+type PersistedCountdown = {
+  status: CountdownStatus;
+  remainingMs: number;
+  endTime: number | null;
+};
+
+const persistedCountdowns = new Map<string | number, PersistedCountdown>();
+
+export function clearCountdown(persistKey: string | number): void {
+  persistedCountdowns.delete(persistKey);
+}
+
 //Avoid inaccurate countdowns when switching to the background
-export function useCountdown(): UseCountdownResult {
-  const [status, setStatus] = useState<CountdownStatus>('idle');
-  const [remainingMs, setRemainingMs] = useState(0);
-  const endTimeRef = useRef<number | null>(null);
+export function useCountdown(persistKey?: string | number): UseCountdownResult {
+  const stored = persistKey != null ? persistedCountdowns.get(persistKey) : undefined;
+  const [status, setStatus] = useState<CountdownStatus>(stored?.status ?? 'idle');
+  const [remainingMs, setRemainingMs] = useState(stored?.remainingMs ?? 0);
+  const endTimeRef = useRef<number | null>(stored?.endTime ?? null);
+
+  useEffect(() => {
+    if (persistKey == null) return;
+    persistedCountdowns.set(persistKey, {
+      status,
+      remainingMs,
+      endTime: endTimeRef.current,
+    });
+  }, [persistKey, status, remainingMs]);
 
   useEffect(() => {
     if (status !== 'running') return;

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useCountdown } from '@/hooks/useCountdown';
+import React, { useEffect, useState } from 'react';
+import { clearCountdown, useCountdown } from '@/hooks/useCountdown';
 
 const DEFAULT_PRESET_MS = 4 * 60 * 1000;
 
@@ -22,6 +22,19 @@ const COLOR_THRESHOLDS_MS: Record<TimerVariant, { maxMs: number; color: string }
     { maxMs: 60 * 1000, color: '#ffcc00' }, // yellow
   ],
 };
+
+type CardUiState = {
+  presetMs: number;
+  inputText: string;
+  inputInvalid: boolean;
+};
+
+const cardUiCache = new Map<number, CardUiState>();
+
+export function clearTimerCardState(id: number): void {
+  cardUiCache.delete(id);
+  clearCountdown(id);
+}
 
 function countdownColorFor(variant: TimerVariant, remainingMs: number, isFinished: boolean): string {
   if (isFinished) return FINISHED_COLOR;
@@ -49,18 +62,45 @@ function parseMmSs(text: string): number | null {
 }
 
 interface TimerCardProps {
+  id?: number;
   label: string;
   onLabelChange?: (label: string) => void;
   onRemove?: () => void;
   variant?: TimerVariant;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  isDragOver?: boolean;
+  onDragOverCard?: (e: React.DragEvent) => void;
+  onDragLeaveCard?: (e: React.DragEvent) => void;
+  onDropOnCard?: (e: React.DragEvent) => void;
 }
 
-const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove, variant = 'ingredient' }) => {
-  const { status, remainingMs, start, pause, resume, reset } = useCountdown();
+const TimerCard: React.FC<TimerCardProps> = ({
+  id,
+  label,
+  onLabelChange,
+  onRemove,
+  variant = 'ingredient',
+  draggable = false,
+  onDragStart,
+  onDragEnd,
+  isDragOver = false,
+  onDragOverCard,
+  onDragLeaveCard,
+  onDropOnCard,
+}) => {
+  const { status, remainingMs, start, pause, resume, reset } = useCountdown(id);
 
-  const [presetMs, setPresetMs] = useState(DEFAULT_PRESET_MS);
-  const [inputText, setInputText] = useState(formatMmSs(DEFAULT_PRESET_MS));
-  const [inputInvalid, setInputInvalid] = useState(false);
+  const cached = id != null ? cardUiCache.get(id) : undefined;
+  const [presetMs, setPresetMs] = useState(cached?.presetMs ?? DEFAULT_PRESET_MS);
+  const [inputText, setInputText] = useState(cached?.inputText ?? formatMmSs(DEFAULT_PRESET_MS));
+  const [inputInvalid, setInputInvalid] = useState(cached?.inputInvalid ?? false);
+
+  useEffect(() => {
+    if (id == null) return;
+    cardUiCache.set(id, { presetMs, inputText, inputInvalid });
+  }, [id, presetMs, inputText, inputInvalid]);
 
   const isIdle = status === 'idle';
   const isRunning = status === 'running';
@@ -88,8 +128,25 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove, v
   };
 
   return (
-    <div className={`timer-card${isFinished ? ' finished' : ''}`}>
+    <div
+      className={`timer-card${isFinished ? ' finished' : ''}${isDragOver ? ' drag-over' : ''}`}
+      onDragOver={onDragOverCard}
+      onDragLeave={onDragLeaveCard}
+      onDrop={onDropOnCard}
+    >
       <div className="header">
+        {draggable && (
+          <div
+            className="drag-handle"
+            draggable
+            title="Drag to move timer"
+            aria-label={`Move ${label}`}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+          >
+            ⠿
+          </div>
+        )}
         <input
           type="text"
           className="label-input"
@@ -158,6 +215,13 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove, v
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
+          outline: 2px solid transparent;
+          outline-offset: 2px;
+          transition: outline-color 0.15s ease;
+        }
+
+        .timer-card.drag-over {
+          outline-color: #0070f3;
         }
 
         .timer-card.finished {
@@ -179,6 +243,21 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove, v
           display: flex;
           justify-content: space-between;
           align-items: center;
+          gap: 0.25rem;
+        }
+
+        .drag-handle {
+          flex-shrink: 0;
+          color: #777;
+          font-size: 1rem;
+          line-height: 1;
+          padding: 0.15rem 0.1rem;
+          cursor: grab;
+          user-select: none;
+        }
+
+        .drag-handle:hover {
+          color: #ccc;
         }
 
         .label-input {

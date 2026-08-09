@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import TimerCard from './TimerCard';
+import React, { useRef, useState } from 'react';
+import TimerCard, { clearTimerCardState } from './TimerCard';
 import Stopwatch from '@/components/Stopwatch';
 
 const DEFAULT_COLUMN_NAMES = ['Orders', 'Cooking'];
@@ -10,6 +10,11 @@ const MIN_TIMERS_PER_COLUMN = 1;
 const MAX_TIMERS_PER_COLUMN = 20;
 const MIN_COLUMNS = 1;
 const MAX_COLUMNS = 10;
+
+type DraggedTimer = {
+  timerId: number;
+  fromColumnId: number;
+};
 
 function smallestFreeId(ids: number[]): number {
   const used = new Set(ids);
@@ -56,6 +61,11 @@ const TimerPanel: React.FC = () => {
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [draggedTimer, setDraggedTimer] = useState<DraggedTimer | null>(null);
+  const [timerDragOverColumnId, setTimerDragOverColumnId] = useState<number | null>(null);
+  const [timerDragOverTimerId, setTimerDragOverTimerId] = useState<number | null>(null);
+  const draggedIndexRef = useRef<number | null>(null);
+  const draggedTimerRef = useRef<DraggedTimer | null>(null);
 
   const addColumn = () => {
     setColumns((prev) => {
@@ -67,6 +77,8 @@ const TimerPanel: React.FC = () => {
   };
 
   const removeColumn = (columnId: number) => {
+    const idsToClear = timerIdsByColumn[columnId] ?? [];
+    idsToClear.forEach(clearTimerCardState);
     setColumns((prev) => {
       if (prev.length <= MIN_COLUMNS) return prev;
       return prev.filter((c) => c.id !== columnId);
@@ -79,6 +91,13 @@ const TimerPanel: React.FC = () => {
     setNotes((prev) => {
       const next = { ...prev };
       delete next[columnId];
+      return next;
+    });
+    setLabels((prev) => {
+      const next = { ...prev };
+      idsToClear.forEach((id) => {
+        delete next[id];
+      });
       return next;
     });
   };
@@ -104,9 +123,70 @@ const TimerPanel: React.FC = () => {
   };
 
   const handleColumnDrop = (index: number) => {
-    if (draggedIndex !== null) reorderColumns(draggedIndex, index);
+    const fromIndex = draggedIndexRef.current;
+    if (fromIndex !== null) reorderColumns(fromIndex, index);
+    draggedIndexRef.current = null;
     setDraggedIndex(null);
     setDragOverIndex(null);
+  };
+
+  const moveTimer = (timerId: number, fromColumnId: number, toColumnId: number, toIndex?: number) => {
+    setTimerIdsByColumn((prev) => {
+      const sourceIds = prev[fromColumnId] ?? [];
+      const fromIndex = sourceIds.indexOf(timerId);
+      if (fromIndex === -1) return prev;
+
+      if (fromColumnId === toColumnId) {
+        const nextIds = [...sourceIds];
+        nextIds.splice(fromIndex, 1);
+        let insertAt = toIndex ?? nextIds.length;
+        if (toIndex != null && fromIndex < toIndex) insertAt -= 1;
+        insertAt = Math.max(0, Math.min(insertAt, nextIds.length));
+        if (insertAt === fromIndex) return prev;
+        nextIds.splice(insertAt, 0, timerId);
+        return { ...prev, [fromColumnId]: nextIds };
+      }
+
+      const targetIds = prev[toColumnId] ?? [];
+      if (targetIds.length >= MAX_TIMERS_PER_COLUMN) return prev;
+
+      const nextSource = sourceIds.filter((id) => id !== timerId);
+      const nextTarget = [...targetIds];
+      const insertAt = Math.max(0, Math.min(toIndex ?? nextTarget.length, nextTarget.length));
+      nextTarget.splice(insertAt, 0, timerId);
+
+      return { ...prev, [fromColumnId]: nextSource, [toColumnId]: nextTarget };
+    });
+  };
+
+  const clearTimerDrag = () => {
+    draggedTimerRef.current = null;
+    setDraggedTimer(null);
+    setTimerDragOverColumnId(null);
+    setTimerDragOverTimerId(null);
+  };
+
+  const handleTimerDropOnColumn = (toColumnId: number) => {
+    const active = draggedTimerRef.current;
+    if (!active) return;
+    moveTimer(active.timerId, active.fromColumnId, toColumnId);
+    clearTimerDrag();
+  };
+
+  const handleTimerDropOnTimer = (toColumnId: number, beforeTimerId: number) => {
+    const active = draggedTimerRef.current;
+    if (!active || active.timerId === beforeTimerId) {
+      clearTimerDrag();
+      return;
+    }
+    const targetIds = timerIdsByColumn[toColumnId] ?? [];
+    const toIndex = targetIds.indexOf(beforeTimerId);
+    if (toIndex === -1) {
+      clearTimerDrag();
+      return;
+    }
+    moveTimer(active.timerId, active.fromColumnId, toColumnId, toIndex);
+    clearTimerDrag();
   };
 
   const addTimer = (columnId: number) => {
@@ -121,11 +201,14 @@ const TimerPanel: React.FC = () => {
   };
 
   const removeTimer = (columnId: number, id: number) => {
-    setTimerIdsByColumn((prev) => {
-      const idsInColumn = prev[columnId] ?? [];
-      if (idsInColumn.length <= MIN_TIMERS_PER_COLUMN) return prev;
-      return { ...prev, [columnId]: idsInColumn.filter((t) => t !== id) };
-    });
+    const idsInColumn = timerIdsByColumn[columnId] ?? [];
+    if (idsInColumn.length <= MIN_TIMERS_PER_COLUMN) return;
+
+    clearTimerCardState(id);
+    setTimerIdsByColumn((prev) => ({
+      ...prev,
+      [columnId]: (prev[columnId] ?? []).filter((t) => t !== id),
+    }));
     setLabels((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -150,24 +233,34 @@ const TimerPanel: React.FC = () => {
         {columns.map((column, index) => {
           const idsInColumn = timerIdsByColumn[column.id] ?? [];
           const columnStyle = index > 0 ? { borderLeft: '1px solid #333', paddingLeft: '1rem' } : undefined;
-          const isDragTarget = draggedIndex !== null && draggedIndex !== index;
+          const isColumnDragTarget = draggedIndex !== null && draggedIndex !== index;
+          const canAcceptTimer =
+            draggedTimer !== null &&
+            (draggedTimer.fromColumnId === column.id || idsInColumn.length < MAX_TIMERS_PER_COLUMN);
+          const isColumnTimerDropHighlight =
+            canAcceptTimer && timerDragOverColumnId === column.id && timerDragOverTimerId === null;
+
           return (
             <React.Fragment key={column.id}>
               <div
-                className={`column-timer-cell${isDragTarget && dragOverIndex === index ? ' drag-over' : ''}`}
+                className={`column-timer-cell${isColumnDragTarget && dragOverIndex === index ? ' drag-over' : ''}`}
                 style={{ gridColumn: index + 1, gridRow: 1, ...columnStyle }}
                 onDragOver={(e) => {
-                  if (isDragTarget) e.preventDefault();
+                  if (draggedIndexRef.current !== null && draggedIndexRef.current !== index) {
+                    e.preventDefault();
+                  }
                 }}
                 onDragEnter={() => {
-                  if (isDragTarget) setDragOverIndex(index);
+                  if (draggedIndexRef.current !== null && draggedIndexRef.current !== index) {
+                    setDragOverIndex(index);
+                  }
                 }}
                 onDragLeave={() => {
                   setDragOverIndex((prev) => (prev === index ? null : prev));
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
-                  handleColumnDrop(index);
+                  if (draggedIndexRef.current !== null) handleColumnDrop(index);
                 }}
               >
                 <div
@@ -176,11 +269,13 @@ const TimerPanel: React.FC = () => {
                   title="Drag to reorder column"
                   aria-label={`Reorder ${column.name}`}
                   onDragStart={(e) => {
+                    draggedIndexRef.current = index;
                     setDraggedIndex(index);
                     e.dataTransfer.effectAllowed = 'move';
-                    e.dataTransfer.setData('text/plain', String(index));
+                    e.dataTransfer.setData('text/plain', `column:${index}`);
                   }}
                   onDragEnd={() => {
+                    draggedIndexRef.current = null;
                     setDraggedIndex(null);
                     setDragOverIndex(null);
                   }}
@@ -204,14 +299,43 @@ const TimerPanel: React.FC = () => {
               </div>
 
               <div
-                className="column-content-cell"
+                className={`column-content-cell${isColumnTimerDropHighlight ? ' timer-drag-over' : ''}`}
                 style={{ gridColumn: index + 1, gridRow: 3, ...columnStyle }}
                 onDragOver={(e) => {
-                  if (isDragTarget) e.preventDefault();
+                  const activeTimer = draggedTimerRef.current;
+                  if (
+                    activeTimer &&
+                    (activeTimer.fromColumnId === column.id || idsInColumn.length < MAX_TIMERS_PER_COLUMN)
+                  ) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                  } else if (draggedIndexRef.current !== null && draggedIndexRef.current !== index) {
+                    e.preventDefault();
+                  }
+                }}
+                onDragEnter={() => {
+                  const activeTimer = draggedTimerRef.current;
+                  if (
+                    activeTimer &&
+                    (activeTimer.fromColumnId === column.id || idsInColumn.length < MAX_TIMERS_PER_COLUMN)
+                  ) {
+                    setTimerDragOverColumnId(column.id);
+                    setTimerDragOverTimerId(null);
+                  }
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                    setTimerDragOverColumnId((prev) => (prev === column.id ? null : prev));
+                    setTimerDragOverTimerId(null);
+                  }
                 }}
                 onDrop={(e) => {
                   e.preventDefault();
-                  handleColumnDrop(index);
+                  if (draggedTimerRef.current) {
+                    handleTimerDropOnColumn(column.id);
+                    return;
+                  }
+                  if (draggedIndexRef.current !== null) handleColumnDrop(index);
                 }}
               >
                 <button
@@ -227,10 +351,47 @@ const TimerPanel: React.FC = () => {
                   {idsInColumn.map((id) => (
                     <TimerCard
                       key={id}
+                      id={id}
                       label={labels[id] ?? `Timer ${id}`}
                       onLabelChange={(label) => renameTimer(id, label)}
                       onRemove={idsInColumn.length > MIN_TIMERS_PER_COLUMN ? () => removeTimer(column.id, id) : undefined}
                       variant="ingredient"
+                      draggable
+                      isDragOver={draggedTimer?.timerId !== id && timerDragOverTimerId === id}
+                      onDragStart={(e) => {
+                        const payload: DraggedTimer = { timerId: id, fromColumnId: column.id };
+                        draggedTimerRef.current = payload;
+                        setDraggedTimer(payload);
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', `timer:${id}`);
+                      }}
+                      onDragEnd={clearTimerDrag}
+                      onDragOverCard={(e) => {
+                        const activeTimer = draggedTimerRef.current;
+                        if (!activeTimer || activeTimer.timerId === id) return;
+                        if (
+                          activeTimer.fromColumnId !== column.id &&
+                          idsInColumn.length >= MAX_TIMERS_PER_COLUMN
+                        ) {
+                          return;
+                        }
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.dataTransfer.dropEffect = 'move';
+                        setTimerDragOverColumnId(column.id);
+                        setTimerDragOverTimerId(id);
+                      }}
+                      onDragLeaveCard={(e) => {
+                        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                          setTimerDragOverTimerId((prev) => (prev === id ? null : prev));
+                        }
+                      }}
+                      onDropOnCard={(e) => {
+                        if (!draggedTimerRef.current) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleTimerDropOnTimer(column.id, id);
+                      }}
                     />
                   ))}
                 </div>
@@ -358,6 +519,14 @@ const TimerPanel: React.FC = () => {
           min-height: 0;
           max-height: 100%;
           min-width: 0;
+          border-radius: 8px;
+          outline: 2px solid transparent;
+          outline-offset: 4px;
+          transition: outline-color 0.15s ease;
+        }
+
+        .column-content-cell.timer-drag-over {
+          outline-color: #0070f3;
         }
 
         .add-btn {
@@ -390,6 +559,7 @@ const TimerPanel: React.FC = () => {
           overflow-y: auto;
           padding-right: 0.25rem;
           min-height: 0;
+          flex: 1;
         }
 
         .add-column-btn {
