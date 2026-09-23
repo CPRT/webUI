@@ -14,7 +14,6 @@ import WaypointList from './WaypointList';
 import SystemTelemetryPanel from './SystemTelemetryPanel';
 import OrientationDisplayPanel from './OrientationDisplayPanel';
 import GoalSetterPanel from './GoalSetterPanel';
-import GasSensor from './GasSensor';
 import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
@@ -40,7 +39,6 @@ type TileType =
   | 'waypointList'
   | 'videoControls'
   | 'rtpStats'
-  | 'gasSensor'
   | 'orientationDisplay'
   | 'goalSetter'
   | 'networkHealthMonitor'
@@ -68,7 +66,6 @@ const TILE_DISPLAY_NAMES: Record<TileType, string> = {
   videoControls: 'Video Stream',
   rtpStats: 'RTP Statistics',
   driveThrottlePanel: 'Drive Throttle',
-  gasSensor: 'Science',
   orientationDisplay: 'Rover Orientation',
   goalSetter: 'Nav2',
   networkHealthMonitor: 'Connection Health',
@@ -95,7 +92,6 @@ const ALL_TILE_TYPES: TileType[] = [
   'rtpStats',
   'driveThrottlePanel',
   'waypointList',
-  'gasSensor',
   'goalSetter',
   'motorStatusPanel',
   'nodeStatusPanel',
@@ -414,13 +410,6 @@ const MosaicDashboard: React.FC = () => {
         return (
           <MosaicWindow {...windowProps}>
             <OrientationDisplayPanel />
-          </MosaicWindow>
-        );
-
-      case 'gasSensor':
-        return (
-          <MosaicWindow {...windowProps}>
-            <GasSensor />
           </MosaicWindow>
         );
 
