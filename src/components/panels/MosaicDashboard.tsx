@@ -34,82 +34,52 @@ import DriveThrottlePanel from './DriveThrottlePanel';
 
 import { ROVER_IP } from '@/constants';
 
-type TileType =
-  | 'mapView'
-  | 'rosMonitor'
-  | 'waypointList'
-  | 'videoControls'
-  | 'rtpStats'
-  | 'gasSensor'
-  | 'orientationDisplay'
-  | 'goalSetter'
-  | 'networkHealthMonitor'
-  | 'motorStatusPanel'
-  | 'driveThrottlePanel'
-  | 'nodeStatusPanel'
-  | 'antennaControlPanel'
-  | 'scienceControlPanel'
-  | 'scienceSensorPanel'
-  | 'pdbRails'
-  | 'armControlPanel'
-  | 'webRTCClient'
-  | 'timerPanel'
-  | 'headlightControlPanel'
-  | 'morseTransmissionPanel'
-  | 'echoPanel'
-  ;
+interface TileDefinition {
+  title: string; // this is what shows up in the 'Pick tile...' drop down
+  render: () => ReactElement; // renders the body of the tile
+}
 
+// Registry of all the tiles. After importing, put them here. Entry order is kept and will reflect on the Pick tile... dropdown
+const TILE_REGISTRY = {
+  mapView: {
+    title: 'Map View',
+    render: () => (
+      <div style={{ height: '100%', backgroundColor: '#121212' }}>
+        <MapView offline />
+      </div>
+    ),
+  },
+  rosMonitor: { title: 'System Telemetry', render: () => <SystemTelemetryPanel /> },
+  networkHealthMonitor: { title: 'Connection Health', render: () => <NetworkHealthTelemetryPanel /> },
+  orientationDisplay: { title: 'Rover Orientation', render: () => <OrientationDisplayPanel /> },
+  videoControls: { title: 'Video Stream', render: () => <VideoControls /> },
+  rtpStats: { title: 'RTP Statistics', render: () => <RtpStats /> },
+  driveThrottlePanel: { title: 'Drive Throttle', render: () => <DriveThrottlePanel /> },
+  waypointList: { title: 'Waypoint List', render: () => <WaypointList /> },
+  gasSensor: { title: 'Science', render: () => <GasSensor /> },
+  goalSetter: { title: 'Nav2', render: () => <GoalSetterPanel /> },
+  motorStatusPanel: { title: 'Motor Status', render: () => <MotorStatusPanel /> },
+  nodeStatusPanel: { title: 'Node Status', render: () => <NodeStatusPanel /> },
+  antennaControlPanel: { title: 'Antenna Control', render: () => <AntennaControlPanel /> },
+  scienceControlPanel: { title: 'Science Motor Control', render: () => <ScienceControlPanel /> },
+  scienceSensorPanel: { title: 'Science Sensor Readouts', render: () => <ScienceSensorPanel /> },
+  pdbRails: { title: 'PDB Rails', render: () => <PDBRailsPanel /> },
+  armControlPanel: { title: 'Arm Control', render: () => <ArmControlPanel /> },
+  webRTCClient: {
+    title: 'WebRTC Client',
+    render: () => <WebRTCClient config={{ signalingUrl: `ws://${ROVER_IP}:8444` }} />,
+  },
+  timerPanel: { title: 'Multi-Timer', render: () => <TimerPanel /> },
+  headlightControlPanel: { title: 'Headlights', render: () => <HeadlightControlPanel /> },
+  morseTransmissionPanel: { title: 'Morse Transmission', render: () => <MorseTransmissionPanel /> },
+  echoPanel: { title: 'Topic Echo', render: () => <TopicEchoPanel /> },
+} satisfies Record<string, TileDefinition>;
+
+type TileType = keyof typeof TILE_REGISTRY;
 type TileId = `${TileType}:${number}`;
 
-const TILE_DISPLAY_NAMES: Record<TileType, string> = {
-  mapView: 'Map View',
-  rosMonitor: 'System Telemetry',
-  waypointList: 'Waypoint List',
-  videoControls: 'Video Stream',
-  rtpStats: 'RTP Statistics',
-  driveThrottlePanel: 'Drive Throttle',
-  gasSensor: 'Science',
-  orientationDisplay: 'Rover Orientation',
-  goalSetter: 'Nav2',
-  networkHealthMonitor: 'Connection Health',
-  motorStatusPanel: 'Motor Status',
-  nodeStatusPanel: 'Node Status',
-  antennaControlPanel: 'Antenna Control',
-  scienceControlPanel: 'Science Motor Control',
-  scienceSensorPanel: 'Science Sensor Readouts',
-  pdbRails: 'PDB Rails',
-  armControlPanel: 'Arm Control',
-  webRTCClient: 'WebRTC Client',
-  timerPanel: 'Multi-Timer',
-  headlightControlPanel: 'Headlights',
-  morseTransmissionPanel: 'Morse Transmission',
-  echoPanel: 'Topic Echo',
-};
-
-const ALL_TILE_TYPES: TileType[] = [
-  'mapView',
-  'rosMonitor',
-  'networkHealthMonitor',
-  'orientationDisplay',
-  'videoControls',
-  'rtpStats',
-  'driveThrottlePanel',
-  'waypointList',
-  'gasSensor',
-  'goalSetter',
-  'motorStatusPanel',
-  'nodeStatusPanel',
-  'antennaControlPanel',
-  'scienceControlPanel',
-  'scienceSensorPanel',
-  'pdbRails',
-  'armControlPanel',
-  'webRTCClient',
-  'timerPanel',
-  'headlightControlPanel',
-  'morseTransmissionPanel',
-  'echoPanel',
-];
+// Object.keys preserves insertion order for string keys
+const ALL_TILE_TYPES = Object.keys(TILE_REGISTRY) as TileType[];
 
 function tileTypeOf(id: TileId): TileType {
   return id.split(':', 1)[0] as TileType;
@@ -281,7 +251,7 @@ const Controls = memo<{
           </option>
           {ALL_TILE_TYPES.map((t) => (
             <option key={t} value={t}>
-              {TILE_DISPLAY_NAMES[t]}
+              {TILE_REGISTRY[t].title}
             </option>
           ))}
         </select>
@@ -353,165 +323,16 @@ const MosaicDashboard: React.FC = () => {
       path: MosaicPath;
       additionalControls: ReactElement;
     } = {
-      title: TILE_DISPLAY_NAMES[type],
+      title: TILE_REGISTRY[type]?.title ?? type,
       path,
       additionalControls: controls,
     };
 
-    switch (type) {
-      case 'mapView':
-        return (
-          <MosaicWindow {...windowProps}>
-            <div style={{ height: '100%', backgroundColor: '#121212' }}>
-              <MapView offline />
-            </div>
-          </MosaicWindow>
-        );
-
-      case 'waypointList':
-        return (
-          <MosaicWindow {...windowProps}>
-            <WaypointList />
-          </MosaicWindow>
-        );
-
-      case 'videoControls':
-        return (
-          <MosaicWindow {...windowProps}>
-            <VideoControls />
-          </MosaicWindow>
-        );
-      
-      case 'rtpStats':
-        return (
-          <MosaicWindow {...windowProps}>
-            <RtpStats />
-          </MosaicWindow>
-        );
-
-      case 'driveThrottlePanel':
-        return (
-          <MosaicWindow {...windowProps}>
-            <DriveThrottlePanel />
-          </MosaicWindow>
-        );
-
-      case 'rosMonitor':
-        return (
-          <MosaicWindow {...windowProps}>
-            <SystemTelemetryPanel />
-          </MosaicWindow>
-        );
-
-      case 'networkHealthMonitor':
-        return (
-          <MosaicWindow {...windowProps}>
-            <NetworkHealthTelemetryPanel />
-          </MosaicWindow>
-        );
-
-      case 'orientationDisplay':
-        return (
-          <MosaicWindow {...windowProps}>
-            <OrientationDisplayPanel />
-          </MosaicWindow>
-        );
-
-      case 'gasSensor':
-        return (
-          <MosaicWindow {...windowProps}>
-            <GasSensor />
-          </MosaicWindow>
-        );
-
-      case 'goalSetter':
-        return (
-          <MosaicWindow {...windowProps}>
-            <GoalSetterPanel />
-          </MosaicWindow>
-        );
-
-      case 'motorStatusPanel':
-        return (
-          <MosaicWindow {...windowProps}>
-            <MotorStatusPanel />
-          </MosaicWindow>
-        );
-      
-      case 'nodeStatusPanel':
-      return (
-        <MosaicWindow {...windowProps}>
-          <NodeStatusPanel />
-        </MosaicWindow>
-      );
-
-      case 'antennaControlPanel':
-        return (
-          <MosaicWindow {...windowProps}>
-            <AntennaControlPanel />
-          </MosaicWindow>
-        );
-      case 'scienceControlPanel':
-        return (
-          <MosaicWindow {...windowProps}>
-            <ScienceControlPanel />
-          </MosaicWindow>
-        );
-      case 'scienceSensorPanel':
-        return(
-          <MosaicWindow {...windowProps}>
-            <ScienceSensorPanel />
-          </MosaicWindow>
-        );
-      case 'pdbRails':
-        return(
-          <MosaicWindow {...windowProps}>
-            <PDBRailsPanel />
-          </MosaicWindow>
-        );
-      case 'armControlPanel':
-        return(
-          <MosaicWindow {...windowProps}>
-            <ArmControlPanel />
-          </MosaicWindow>
-        );
-      case 'webRTCClient':
-        return(
-          <MosaicWindow {...windowProps}>
-            <WebRTCClient
-              config={{ signalingUrl: `ws://${ROVER_IP}:8444` }}
-            />
-          </MosaicWindow>
-        );
-      case 'timerPanel':
-        return (
-          <MosaicWindow {...windowProps}>
-            <TimerPanel />
-          </MosaicWindow>
-        );
-      case 'headlightControlPanel':
-        return (
-          <MosaicWindow {...windowProps}>
-            <HeadlightControlPanel />
-          </MosaicWindow>
-        );
-
-      case 'morseTransmissionPanel':
-        return (
-          <MosaicWindow {...windowProps}>
-            <MorseTransmissionPanel />
-          </MosaicWindow>
-        );
-      case 'echoPanel':
-        return (
-          <MosaicWindow {...windowProps}>
-            <TopicEchoPanel />
-          </MosaicWindow>
-        );
-
-      default:
-        return <div>Unknown tile</div>;
-    }
+    return (
+      <MosaicWindow {...windowProps}>
+        {TILE_REGISTRY[type]?.render() ?? <div>Unknown tile</div>}
+      </MosaicWindow>
+    );
   };
 
   if (!mosaicLayout) return null;
