@@ -1,18 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Polyline, Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect, useRef } from 'react';
+import { Circle, Polyline, useMap } from 'react-leaflet';
 import { useROS } from '@/ros/ROSContext';
 import { useWaypoints, LatLngTuple } from '@/contexts/WaypointContext';
 import ROSLIB from 'roslib';
-import L from 'leaflet'
 
 interface Breadcrumb {
   coordinate: [number, number];
   timestamp: number;
+  covarianceRadius: number;
+  altitude?: number;
 }
 
-const BreadcrumbTrail: React.FC = () => {
+type BreadcrumbTrailProps = {
+  downloadPNG: Function,
+}
+
+const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
+  const map = useMap();
   const { ros, connectionStatus } = useROS();
   const { addWaypoint } = useWaypoints();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
@@ -20,6 +26,7 @@ const BreadcrumbTrail: React.FC = () => {
   const [lastFix, setLastFix] = useState<Breadcrumb | null>(null);
   const [antennaLoc, setAntennaLoc] = useState<LatLngTuple>([0, 0]);
   const [antennaHead, setAntennaHead] = useState<number>(0);
+  const hasRecenteredRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (!ros) return;
@@ -44,14 +51,32 @@ const BreadcrumbTrail: React.FC = () => {
 
     const handleFix = (message: any) => {
       if (paused) return;
-      // Assuming the /fix message contains 'latitude' and 'longitude'
-      const { latitude, longitude } = message;
+
+      const { latitude, longitude, position_covariance } = message;
+
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+
+      const eastVariance = position_covariance?.[0] ?? 0;
+      const northVariance = position_covariance?.[4] ?? 0;
+
+      const covarianceRadius = 2 * Math.sqrt(
+        Math.max(eastVariance, northVariance, 0)
+      );
+
       const newFix: Breadcrumb = {
         coordinate: [latitude, longitude],
         timestamp: Date.now(),
+        covarianceRadius,
+        altitude: message.altitude,
       };
+
       setBreadcrumbs((prev) => [...prev, newFix]);
       setLastFix(newFix);
+
+      if (!hasRecenteredRef.current) {
+        map.flyTo(newFix.coordinate, map.getZoom());
+        hasRecenteredRef.current = true;
+      }
     };
 
     const handleAntennaFix = (message: any) => {
@@ -74,7 +99,7 @@ const BreadcrumbTrail: React.FC = () => {
       antennaFixTopic.unsubscribe(handleAntennaFix);
       antennaBearingTopic.unsubscribe(handleAntennaBearing);
     };
-  }, [ros, paused]);
+  }, [ros, paused, map]);
 
   const clearBreadcrumbs = () => {
     setBreadcrumbs([]);
@@ -117,6 +142,12 @@ const BreadcrumbTrail: React.FC = () => {
     }
   };
 
+  const handleRecenter = () => {
+    if (lastFix) {
+      map.flyTo(lastFix.coordinate, map.getZoom());
+    }
+  };
+
   return (
     <>
       {/* render the crumbs bomboclart*/}
@@ -124,6 +155,17 @@ const BreadcrumbTrail: React.FC = () => {
         <Polyline
           positions={breadcrumbs.map((b) => b.coordinate)}
           color="yellow"
+        />
+      )}
+      {lastFix && lastFix.covarianceRadius > 0 && (
+        <Circle
+          center={lastFix.coordinate}
+          radius={lastFix.covarianceRadius}
+          pathOptions={{
+            color: 'red',
+            weight: 3,
+            fill: false,
+          }}
         />
       )}
 
@@ -154,6 +196,10 @@ const BreadcrumbTrail: React.FC = () => {
             Lat: {lastFix.coordinate[0].toFixed(6)}
             <br />
             Lon: {lastFix.coordinate[1].toFixed(6)}
+            <br />
+            Altitude: {lastFix.altitude?.toFixed(2) || 'N/A'} m
+            <br />
+            Accuracy: {lastFix.covarianceRadius.toFixed(2)} m (2σ)
             <br />
             Time: {new Date(lastFix.timestamp).toLocaleTimeString()}
           </div>
@@ -195,6 +241,7 @@ const BreadcrumbTrail: React.FC = () => {
           <button
             onClick={clearBreadcrumbs}
             style={{
+              marginRight: '0.5rem',
               padding: '0.25rem 0.5rem',
               backgroundColor: '#d9534f',
               border: 'none',
@@ -204,6 +251,20 @@ const BreadcrumbTrail: React.FC = () => {
             }}
           >
             Clear
+          </button>
+          <button
+            onClick={handleRecenter}
+            disabled={!lastFix}
+            style={{
+              padding: '0.25rem 0.5rem',
+              backgroundColor: lastFix ? '#6c757d' : '#444',
+              border: 'none',
+              borderRadius: '4px',
+              color: '#fff',
+              cursor: lastFix ? 'pointer' : 'not-allowed',
+            }}
+          >
+            Re-center
           </button>
         </div>
         {lastFix && (
@@ -227,4 +288,3 @@ const BreadcrumbTrail: React.FC = () => {
 };
 
 export default BreadcrumbTrail;
-

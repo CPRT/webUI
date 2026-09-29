@@ -92,6 +92,22 @@ const NodeStatusPanel: React.FC = () => {
             const age = Date.now() - info.lastSeen;
             const offline = !info.online && age > 2000;
 
+            const status = stale
+              ? 'STALE'
+              : info.online
+                ? 'ONLINE'
+                : offline
+                  ? 'OFFLINE'
+                  : 'UNKNOWN';
+
+            const color = stale
+              ? '#ffc107'
+              : info.online
+                ? '#22c55e'
+                : offline
+                  ? '#ef4444'
+                  : '#6c757d';
+
             return (
               <tr key={name}>
                 <td>{name}</td>
@@ -99,21 +115,10 @@ const NodeStatusPanel: React.FC = () => {
                 <td>
                   <span
                     className="status-led"
-                    style={{
-                      backgroundColor: stale
-                        ? '#ffc107'
-                        : info.online
-                          ? '#22c55e'
-                          : offline
-                            ? '#ef4444'
-                            : '#6b7280',
-                    }}
+                    style={{ backgroundColor: color }}
                   />
-                  <span style={{ paddingLeft: 8 }}>
-                    {stale ? 'Stale' : info.online ? 'Online' : offline ? 'Offline' : 'Unknown'}
-                  </span>
+                  <span style={{ paddingLeft: '8px' }}>{status}</span>
                 </td>
-
                 <td>
                   {info.online
                     ? 'Now'
@@ -130,8 +135,10 @@ const NodeStatusPanel: React.FC = () => {
           background: #1e1e1e;
           color: #f1f1f1;
           height: 100%;
-          overflow: auto;
+          display: flex;
+          flex-direction: column;
           font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          overflow: auto;
         }
 
         .node-table {
@@ -145,15 +152,17 @@ const NodeStatusPanel: React.FC = () => {
           border-bottom: 2px solid #444;
         }
 
-        .node-table th,
-        .node-table td {
+        .node-table th {
           text-align: left;
-          padding: 8px;
+          font-weight: 600;
+        }
+
+        .node-table td {
           border-bottom: 1px solid #333;
         }
 
         .node-table tbody tr:hover {
-          background: #262626;
+          background-color: #262626;
         }
 
         .status-led {

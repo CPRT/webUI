@@ -82,7 +82,7 @@ const RtpStats: React.FC = () => {
           }}
         >
           <h2 style={{ margin: 0, fontSize: "1.1rem", color: "#f1f1f1" }}>
-            SRT Stats:
+            RTP Stats:
           </h2>
         </div>
         <div

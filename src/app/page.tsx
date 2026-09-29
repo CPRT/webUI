@@ -1,6 +1,7 @@
 'use client';
 
 import Layout from '@/components/Layout';
+import { direction } from 'html2canvas/dist/types/css/property-descriptors/direction';
 
 const names = ["Default", "Arm Operation", "Debug", "Auxiliary", "Science"];
 const colors = ['#0070f3', '#28a745', '#dc3545', '#ffc107', '#17a2b8'];
@@ -50,14 +51,19 @@ const layouts = [
     direction: 'row',
     first: {
       direction: 'column',
-      first: 'mapView:1',
-      second: 'waypointList:2',
+      first: 'orientationDisplay:1',
+      second: {
+        direction: 'row',
+        first: 'mapView:2',
+        second: 'motorStatusPanel:3',
+        splitPercentage: 60,
+      },
       splitPercentage: 60,
     },
     second: {
       direction: 'column',
-      first: 'videoControls:3',
-      second: 'armControlPanel:4',
+      first: 'videoControls:4',
+      second: 'armControlPanel:5',
       splitPercentage: 50,
     },
     splitPercentage: 60,
@@ -67,26 +73,26 @@ const layouts = [
     first: {
       direction: 'column',
       first: 'motorStatusPanel:1',
-      second: 'pdbRails:2',
+      second: {
+        direction: 'row',
+        first: 'pdbRails:2',
+        second: 'networkHealthMonitor:3',
+        splitPercentage: '50',
+      },
       splitPercentage: 60,
     },
     second: {
       direction: 'row',
-      first: {
-        direction: 'column',
-        first: 'networkHealthMonitor:3',
-        second: 'rosMonitor:4',
-        splitPercentage: 60
-      },
+      first: 'webRTCClient:4',
       second: {
         direction: 'column',
-        first: 'antennaControlPanel:5',
-        second: 'nodeStatusPanel:6',
-        splitPercentage: 20,
+        first: 'nodeStatusPanel:5',
+        second: 'rosMonitor:6',
+        splitPercentage: 70
       },
-      splitPercentage: 50,
+      splitPercentage: 70,
     },
-    splitPercentage: 35,
+    splitPercentage: 30,
   },
   {
     direction: 'row',

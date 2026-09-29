@@ -5,6 +5,30 @@ import { useCountdown } from '@/hooks/useCountdown';
 
 const DEFAULT_PRESET_MS = 4 * 60 * 1000;
 
+type TimerVariant = 'order' | 'ingredient';
+
+const DEFAULT_COLOR = '#00ffcc';
+const FINISHED_COLOR = '#ff5566';
+
+// Ordered smallest-threshold-first so the first match wins.
+const COLOR_THRESHOLDS_MS: Record<TimerVariant, { maxMs: number; color: string }[]> = {
+  order: [
+    { maxMs: 42 * 1000, color: '#ff5566' }, // red
+    { maxMs: 90 * 1000, color: '#ff8c1a' }, // orange
+    { maxMs: 4 * 60 * 1000, color: '#ffcc00' }, // yellow
+  ],
+  ingredient: [
+    { maxMs: 35 * 1000, color: '#ff5566' }, // red
+    { maxMs: 60 * 1000, color: '#ffcc00' }, // yellow
+  ],
+};
+
+function countdownColorFor(variant: TimerVariant, remainingMs: number, isFinished: boolean): string {
+  if (isFinished) return FINISHED_COLOR;
+  const threshold = COLOR_THRESHOLDS_MS[variant].find((t) => remainingMs <= t.maxMs);
+  return threshold?.color ?? DEFAULT_COLOR;
+}
+
 function formatMmSs(ms: number): string {
   const totalSeconds = Math.max(0, Math.round(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
@@ -26,26 +50,24 @@ function parseMmSs(text: string): number | null {
 
 interface TimerCardProps {
   label: string;
+  onLabelChange?: (label: string) => void;
   onRemove?: () => void;
+  variant?: TimerVariant;
 }
 
-const TimerCard: React.FC<TimerCardProps> = ({ label, onRemove }) => {
-  const { status, remainingMs, start, reset } = useCountdown();
+const TimerCard: React.FC<TimerCardProps> = ({ label, onLabelChange, onRemove, variant = 'ingredient' }) => {
+  const { status, remainingMs, start, pause, resume, reset } = useCountdown();
 
   const [presetMs, setPresetMs] = useState(DEFAULT_PRESET_MS);
   const [inputText, setInputText] = useState(formatMmSs(DEFAULT_PRESET_MS));
   const [inputInvalid, setInputInvalid] = useState(false);
 
   const isIdle = status === 'idle';
+  const isRunning = status === 'running';
+  const isPaused = status === 'paused';
   const isFinished = status === 'finished';
 
-  const countdownColor = isFinished
-    ? '#ff5566'
-    : remainingMs <= 30 * 1000
-      ? '#ff5566'
-      : remainingMs <= 60 * 1000
-        ? '#ffcc00'
-        : '#00ffcc';
+  const countdownColor = countdownColorFor(variant, remainingMs, isFinished);
 
   const handleGo = () => {
     const parsedMs = parseMmSs(inputText);
@@ -68,7 +90,13 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onRemove }) => {
   return (
     <div className={`timer-card${isFinished ? ' finished' : ''}`}>
       <div className="header">
-        <h4>{label}</h4>
+        <input
+          type="text"
+          className="label-input"
+          value={label}
+          aria-label="Timer name"
+          onChange={(e) => onLabelChange?.(e.target.value)}
+        />
         {onRemove && (
           <button
             type="button"
@@ -98,11 +126,22 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onRemove }) => {
       />
 
       <div className="buttons">
-        {isIdle ? (
+        {isIdle && (
           <button type="button" onClick={handleGo}>
             Go
           </button>
-        ) : (
+        )}
+        {isRunning && (
+          <button type="button" className="pause" onClick={pause}>
+            Pause
+          </button>
+        )}
+        {isPaused && (
+          <button type="button" onClick={resume}>
+            Resume
+          </button>
+        )}
+        {!isIdle && (
           <button type="button" className="reset" onClick={handleReset}>
             Reset
           </button>
@@ -142,11 +181,28 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onRemove }) => {
           align-items: center;
         }
 
-        h4 {
+        .label-input {
           margin: 0;
-          font-size: 0.95rem;
+          padding: 0.15rem 0.3rem;
+          font-size: 1.5rem;
           font-weight: 600;
           color: #eaeaea;
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: 4px;
+          width: 100%;
+          min-width: 0;
+          font-family: inherit;
+        }
+
+        .label-input:hover {
+          border-color: #444;
+        }
+
+        .label-input:focus {
+          outline: none;
+          background: #111;
+          border-color: #0070f3;
         }
 
         .remove-btn {
@@ -228,6 +284,14 @@ const TimerCard: React.FC<TimerCardProps> = ({ label, onRemove }) => {
 
         button.reset:hover {
           background: #666;
+        }
+
+        button.pause {
+          background: #d9a441;
+        }
+
+        button.pause:hover {
+          background: #c4923a;
         }
       `}</style>
     </div>

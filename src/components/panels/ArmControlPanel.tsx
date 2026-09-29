@@ -290,7 +290,7 @@ const ArmControlPanel: React.FC = () => {
 
     const service = new ROSLIB.Service({
       ros,
-      name: '/stop_motion',
+      name: '/move_group_interface/stop',
       serviceType: 'std_srvs/srv/Trigger',
     });
 

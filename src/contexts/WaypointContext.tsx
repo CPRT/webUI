@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 export type LatLngTuple = [number, number];
 
@@ -19,10 +19,42 @@ interface WaypointContextType {
   updateWaypoint: (index: number, updated: Waypoint) => void;
 }
 
+const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24; // 1 day
+
+const getCookie = (name: string, fallback: Waypoint[]) => {
+  const cookie = document.cookie
+    .split('; ')
+    .find((entry) => entry.startsWith(`${name}=`));
+
+  if (!cookie) return fallback;
+
+  const value = JSON.parse(decodeURIComponent(cookie.split('=')[1]));
+
+  return value;
+};
+
+const setCookie = (name: string, value: Waypoint[]) => {
+  document.cookie =
+    `${name}=${encodeURIComponent(JSON.stringify(value))}; ` +
+    `max-age=${COOKIE_MAX_AGE_SECONDS}; path=/; SameSite=Lax`;
+};
+
 const WaypointContext = createContext<WaypointContextType | undefined>(undefined);
 
 export const WaypointProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  const [cookiesLoaded, setCookiesLoaded] = useState(false);
+
+  useEffect(() => {
+    setWaypoints(getCookie("waypoints", []));
+    setCookiesLoaded(true);
+  }, [])
+
+  useEffect(() => {
+    if (!cookiesLoaded) return;
+
+    setCookie("waypoints", waypoints);
+  }, [waypoints, cookiesLoaded])
 
   const addWaypoint = (coordinate: LatLngTuple) => {
     setWaypoints((prev) => [

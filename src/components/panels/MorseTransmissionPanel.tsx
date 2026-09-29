@@ -3,17 +3,25 @@ import React, { useEffect, useRef, useState } from 'react';
 import ROSLIB from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
+type DetectionType = 'NONE' | 'MORSE' | string;
+
 const MorseTransmissionPanel: React.FC = () => {
   const { ros } = useROS();
 
   const [message, setMessage] = useState('');
   const [lastSent, setLastSent] = useState<string | null>(null);
+  const [receivedText, setReceivedText] = useState('');
+  const [detectionType, setDetectionType] = useState<DetectionType | null>(null);
+  const [updating, setUpdating] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
 
   const topicRef = useRef<ROSLIB.Topic | null>(null);
 
   useEffect(() => {
     if (!ros) {
       topicRef.current = null;
+      setDetectionType(null);
+      setReceivedText('');
       return;
     }
 
@@ -23,6 +31,19 @@ const MorseTransmissionPanel: React.FC = () => {
       messageType: 'std_msgs/msg/String',
     });
 
+    const morseTextTopic = new ROSLIB.Topic({
+      ros,
+      name: '/morse_text',
+      messageType: 'std_msgs/msg/String',
+    });
+
+    const handleMorseText = (msg: ROSLIB.Message) => {
+      const data = (msg as { data?: string }).data;
+      setReceivedText(typeof data === 'string' ? data : '');
+    };
+
+    morseTextTopic.subscribe(handleMorseText);
+
     return () => {
       try {
         topicRef.current?.unadvertise();
@@ -30,8 +51,91 @@ const MorseTransmissionPanel: React.FC = () => {
         // ignore
       }
       topicRef.current = null;
+      morseTextTopic.unsubscribe(handleMorseText);
     };
   }, [ros]);
+
+  const refreshDetectionType = () => {
+    if (!ros) return;
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: '/detect_node/get_parameters',
+      serviceType: 'rcl_interfaces/srv/GetParameters',
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      names: ['detection_type'],
+    });
+
+    service.callService(request, (result: any) => {
+      const value = result.values?.[0];
+      if (!value || value.type !== 4) {
+        setStatus('Failed to read detection_type');
+        return;
+      }
+      setDetectionType(value.string_value ?? 'NONE');
+    });
+  };
+
+  useEffect(() => {
+    refreshDetectionType();
+  }, [ros]);
+
+  const setDetectParameter = (
+    name: string,
+    value: { type: number; string_value?: string; bool_value?: boolean },
+    onSuccess?: () => void,
+  ) => {
+    if (!ros) return;
+
+    setUpdating(true);
+    setStatus(null);
+
+    const service = new ROSLIB.Service({
+      ros,
+      name: '/detect_node/set_parameters',
+      serviceType: 'rcl_interfaces/srv/SetParameters',
+    });
+
+    const request = new ROSLIB.ServiceRequest({
+      parameters: [{ name, value }],
+    });
+
+    service.callService(request, (result: any) => {
+      const parameterResult = result.results?.[0];
+      const success = parameterResult?.successful ?? false;
+      const reason = parameterResult?.reason ?? '';
+
+      setUpdating(false);
+
+      if (!success) {
+        setStatus(reason || `Failed to set ${name}`);
+        if (name === 'detection_type') refreshDetectionType();
+        return;
+      }
+
+      onSuccess?.();
+      setStatus(`Set ${name} successfully`);
+    });
+  };
+
+  const handleMorseToggle = (enabled: boolean) => {
+    const mode = enabled ? 'MORSE' : 'NONE';
+    setDetectParameter(
+      'detection_type',
+      { type: 4, string_value: mode },
+      () => setDetectionType(mode),
+    );
+  };
+
+  const setCalibrate = () => {
+    setDetectParameter('calibrate', { type: 1, bool_value: true });
+  };
+
+  const setStartDetection = () => {
+    setDetectParameter('start_detection', { type: 1, bool_value: true });
+  };
 
   const send = () => {
     if (!topicRef.current || !message) return;
@@ -44,6 +148,9 @@ const MorseTransmissionPanel: React.FC = () => {
   };
 
   const disabled = !ros;
+  const detectDisabled = disabled || updating || detectionType === null;
+  const morseEnabled = detectionType === 'MORSE';
+  const morseActionsDisabled = detectDisabled || !morseEnabled;
 
   return (
     <div className="morse-panel">
@@ -62,7 +169,45 @@ const MorseTransmissionPanel: React.FC = () => {
         </button>
       </div>
 
+      <div className="detect-section">
+        <div className="detect-header">Detection Options</div>
+        <div className="detect-controls">
+        <label className="toggle-row">
+          <span>Morse Detection</span>
+          <input
+            type="checkbox"
+            checked={morseEnabled}
+            disabled={detectDisabled}
+            onChange={(e) => handleMorseToggle(e.target.checked)}
+          />
+        </label>
+        <button className="btn" disabled={morseActionsDisabled} onClick={setCalibrate}>
+          Calibrate
+        </button>
+        <button
+          className="btn"
+          disabled={morseActionsDisabled}
+          onClick={setStartDetection}
+        >
+          Start Detection
+        </button>
+        </div>
+        <div className="received-row">
+          <label htmlFor="morse-text-received">Received text</label>
+          <input
+            id="morse-text-received"
+            type="text"
+            className="input"
+            value={receivedText}
+            readOnly
+            disabled={disabled}
+            placeholder="Waiting for /morse_text..."
+          />
+        </div>
+      </div>
+
       {lastSent && <div className="last-sent">Last sent: {lastSent}</div>}
+      {status && <div className="status">{status}</div>}
 
       <style jsx>{`
         .morse-panel {
@@ -77,6 +222,49 @@ const MorseTransmissionPanel: React.FC = () => {
         .controls {
           display: flex;
           gap: 0.75rem;
+        }
+        .detect-section {
+          margin-top: 0.75rem;
+        }
+        .detect-header {
+          color: #d6d6d6;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+        }
+        .detect-controls {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .toggle-row {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.4rem 0.6rem;
+          border: 1px solid #333;
+          border-radius: 6px;
+          background: #2b2b2b;
+          color: #ccc;
+          cursor: pointer;
+        }
+        .toggle-row input {
+          width: 1.1rem;
+          height: 1.1rem;
+          cursor: pointer;
+        }
+        .toggle-row input:disabled {
+          cursor: not-allowed;
+        }
+        .received-row {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+          margin-top: 0.75rem;
+        }
+        .received-row label {
+          color: #d6d6d6;
+          font-size: 0.9rem;
         }
         .input {
           flex: 1;
@@ -110,7 +298,8 @@ const MorseTransmissionPanel: React.FC = () => {
           cursor: not-allowed;
           opacity: 0.8;
         }
-        .last-sent {
+        .last-sent,
+        .status {
           margin-top: 0.5rem;
           color: #d6d6d6;
         }

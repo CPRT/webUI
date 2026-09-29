@@ -1,4 +1,5 @@
 import Layout from '@/components/Layout';
+import { Toaster } from "react-hot-toast";
 import type { Metadata } from "next";
 import MosaicDashboardClient from "./MosaicDashboardClient";
 
@@ -11,6 +12,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <MosaicDashboardClient />
+      <Toaster />
     </Layout>
   );
 }
