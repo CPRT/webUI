@@ -14,7 +14,6 @@ import WaypointList from './WaypointList';
 import SystemTelemetryPanel from './SystemTelemetryPanel';
 import OrientationDisplayPanel from './OrientationDisplayPanel';
 import GoalSetterPanel from './GoalSetterPanel';
-import GasSensor from './GasSensor';
 import NetworkHealthTelemetryPanel from './NetworkHealthTelemetryPanel';
 import VideoControls from './VideoControls';
 import MotorStatusPanel from './MotorStatusPanel';
@@ -57,7 +56,6 @@ const TILE_REGISTRY = {
   rtpStats: { title: 'RTP Statistics', render: () => <RtpStats /> },
   driveThrottlePanel: { title: 'Drive Throttle', render: () => <DriveThrottlePanel /> },
   waypointList: { title: 'Waypoint List', render: () => <WaypointList /> },
-  gasSensor: { title: 'Science', render: () => <GasSensor /> },
   goalSetter: { title: 'Nav2', render: () => <GoalSetterPanel /> },
   motorStatusPanel: { title: 'Motor Status', render: () => <MotorStatusPanel /> },
   nodeStatusPanel: { title: 'Node Status', render: () => <NodeStatusPanel /> },
