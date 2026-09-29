@@ -327,7 +327,21 @@ const MosaicDashboard: React.FC = () => {
 
     return (
       <MosaicWindow {...windowProps}>
-        {TILE_REGISTRY[type]?.render() ?? <div>Unknown tile</div>}
+        {TILE_REGISTRY[type]?.render() ?? (
+          <div
+            style={{
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              color: '#000',
+              backgroundColor: '#f1f1f1',
+            }}
+          >
+            Unknown tile
+          </div>
+        )}
       </MosaicWindow>
     );
   };
