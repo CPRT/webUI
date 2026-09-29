@@ -39,7 +39,8 @@ interface TileDefinition {
   render: () => ReactElement; // renders the body of the tile
 }
 
-// Registry of all the tiles. After importing, put them here. Entry order is kept and will reflect on the Pick tile... dropdown
+// Registry of all the tiles. After importing, put them here. 
+// Entry order is kept and will reflect on the Pick tile... dropdown
 const TILE_REGISTRY = {
   mapView: {
     title: 'Map View',
@@ -323,14 +324,14 @@ const MosaicDashboard: React.FC = () => {
       path: MosaicPath;
       additionalControls: ReactElement;
     } = {
-      title: TILE_REGISTRY[type]?.title ?? type,
+      title: TILE_REGISTRY[type].title,
       path,
       additionalControls: controls,
     };
 
     return (
       <MosaicWindow {...windowProps}>
-        {TILE_REGISTRY[type]?.render() ?? <div>Unknown tile</div>}
+        {TILE_REGISTRY[type].render()}
       </MosaicWindow>
     );
   };
