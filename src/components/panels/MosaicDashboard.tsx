@@ -34,12 +34,10 @@ import DriveThrottlePanel from './DriveThrottlePanel';
 import { ROVER_IP } from '@/constants';
 
 interface TileDefinition {
-  title: string; // this is what shows up in the 'Pick tile...' drop down
-  render: () => ReactElement; // renders the body of the tile
+  title: string;
+  render: () => ReactElement;
 }
 
-// Registry of all the tiles. After importing, put them here. 
-// Entry order is kept and will reflect on the Pick tile... dropdown
 const TILE_REGISTRY = {
   mapView: {
     title: 'Map View',
@@ -322,14 +320,14 @@ const MosaicDashboard: React.FC = () => {
       path: MosaicPath;
       additionalControls: ReactElement;
     } = {
-      title: TILE_REGISTRY[type].title,
+      title: TILE_REGISTRY[type]?.title ?? type,
       path,
       additionalControls: controls,
     };
 
     return (
       <MosaicWindow {...windowProps}>
-        {TILE_REGISTRY[type].render()}
+        {TILE_REGISTRY[type]?.render() ?? <div>Unknown tile</div>}
       </MosaicWindow>
     );
   };
