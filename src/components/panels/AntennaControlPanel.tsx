@@ -158,7 +158,7 @@ const AntennaControlPanel: React.FC = () => {
 
   const btnDisabled = enabled || !ros;
 
-  const bearingDelta = ((targetBearing - bearing + 180) % 360 - 180).toFixed(1)
+  const bearingDelta = (targetBearing - bearing + 180) % 360 - 180
 
   return (
     <div className="antenna-panel">
@@ -202,7 +202,7 @@ const AntennaControlPanel: React.FC = () => {
       <div style={{ marginBottom: '0.125rem' }}>
         <strong>Pointing:</strong>
         <br />
-        Delta: <span className={Math.abs(bearingDelta) < 15 ? 'ok' : 'bad'}>{bearingDelta}</span>°
+        Delta: <span className={Math.abs(bearingDelta) < 15 ? 'ok' : 'bad'}>{bearingDelta.toFixed(1)}</span>°
         <br />
         Bearing: {bearing.toFixed(1)}°
         <br />
