@@ -107,8 +107,8 @@ const AntennaControlPanel: React.FC = () => {
   // Determine what value should be published right now
   const computeValue = () => {
     if (enabled) return 0.0;
-    if (leftHeld && !rightHeld) return -Math.PI / 180 * 1;
-    if (rightHeld && !leftHeld) return Math.PI / 180 * 1;
+    if (leftHeld && !rightHeld) return -Math.PI / 180;
+    if (rightHeld && !leftHeld) return Math.PI / 180;
     return 0.0; // neither held OR both held
   };
 
@@ -158,7 +158,7 @@ const AntennaControlPanel: React.FC = () => {
 
   const btnDisabled = enabled || !ros;
 
-  const bearingDelta = ((targetBearing - bearing + 180) % 360 -180).toFixed(1)
+  const bearingDelta = ((targetBearing - bearing + 180) % 360 - 180).toFixed(1)
 
   return (
     <div className="antenna-panel">
