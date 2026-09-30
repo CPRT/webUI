@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Circle, Polyline, useMap } from 'react-leaflet';
 import { useROS } from '@/ros/ROSContext';
-import { useWaypoints, LatLngTuple } from '@/contexts/WaypointContext';
+import { useWaypoints } from '@/contexts/WaypointContext';
 import ROSLIB from 'roslib';
 
 interface Breadcrumb {
@@ -17,6 +17,22 @@ type BreadcrumbTrailProps = {
   downloadPNG: Function,
 }
 
+// cool thing for calculating distance on a sphere
+export const haversineDistance = (
+  [lat1, lon1]: [number, number],
+  [lat2, lon2]: [number, number]
+): number => {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
   const map = useMap();
   const { ros, connectionStatus } = useROS();
@@ -24,8 +40,6 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [paused, setPaused] = useState<boolean>(false);
   const [lastFix, setLastFix] = useState<Breadcrumb | null>(null);
-  const [antennaLoc, setAntennaLoc] = useState<LatLngTuple>([0, 0]);
-  const [antennaHead, setAntennaHead] = useState<number>(0);
   const hasRecenteredRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -35,18 +49,6 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
       ros,
       name: '/gps/fix',
       messageType: 'sensor_msgs/NavSatFix',
-    });
-
-    const antennaFixTopic = new ROSLIB.Topic({
-      ros,
-      name: '/base_station/fix',
-      messageType: 'sensor_msgs/NavSatFix',
-    });
-
-    const antennaBearingTopic = new ROSLIB.Topic({
-      ros,
-      name: '/antenna/tracker_bearing',
-      messageType: 'std_msgs/Float32',
     });
 
     const handleFix = (message: any) => {
@@ -79,47 +81,15 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
       }
     };
 
-    const handleAntennaFix = (message: any) => {
-      // Assuming the /fix message contains 'latitude' and 'longitude'
-      const { latitude, longitude } = message;
-      setAntennaLoc([latitude, longitude]);
-    };
-
-    const handleAntennaBearing = (message: any) => {
-      // Assuming the message contains float32
-      const angle = message.data * 360;
-      setAntennaHead(angle);
-    };
-
     fixTopic.subscribe(handleFix);
-    antennaFixTopic.subscribe(handleAntennaFix);
-    antennaBearingTopic.subscribe(handleAntennaBearing);
     return () => {
       fixTopic.unsubscribe(handleFix);
-      antennaFixTopic.unsubscribe(handleAntennaFix);
-      antennaBearingTopic.unsubscribe(handleAntennaBearing);
     };
   }, [ros, paused, map]);
 
   const clearBreadcrumbs = () => {
     setBreadcrumbs([]);
     setLastFix(null);
-  };
-
-  // cool thing for calculating distance on a sphere
-  const haversineDistance = (
-    [lat1, lon1]: [number, number],
-    [lat2, lon2]: [number, number]
-  ): number => {
-    const toRad = (x: number) => (x * Math.PI) / 180;
-    const R = 6371; // radius of my nutz in kilometers
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
   };
 
   const computeDistance = (): number => {
@@ -211,17 +181,6 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
         </div>
         <div style={{ marginBottom: '0.125rem' }}>
           <strong>Total Distance:</strong> {totalDistance.toFixed(2)} km
-        </div>
-        <div style={{ marginBottom: '0.125rem' }}>
-          <strong>Antenna Location:</strong>
-          <br />
-            {/* TODO: Is this enough percision? */}
-            Lat: {antennaLoc[0].toFixed(6)}
-            <br />
-            Lon: {antennaLoc[1].toFixed(6)}
-        </div>
-        <div style={{ marginBottom: '0.125rem' }}>
-          <strong>Antenna Heading:</strong> {antennaHead.toFixed(1)}°
         </div>
         <div style={{ marginBottom: '0.125rem' }}>
           <button
