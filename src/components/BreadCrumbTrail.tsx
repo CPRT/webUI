@@ -17,6 +17,22 @@ type BreadcrumbTrailProps = {
   downloadPNG: Function,
 }
 
+// cool thing for calculating distance on a sphere
+export const haversineDistance = (
+  [lat1, lon1]: [number, number],
+  [lat2, lon2]: [number, number]
+): number => {
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
   const map = useMap();
   const { ros, connectionStatus } = useROS();
@@ -76,22 +92,6 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
     setLastFix(null);
   };
 
-  // cool thing for calculating distance on a sphere
-  const haversineDistance = (
-    [lat1, lon1]: [number, number],
-    [lat2, lon2]: [number, number]
-  ): number => {
-    const toRad = (x: number) => (x * Math.PI) / 180;
-    const R = 6371; // radius of my nutz in kilometers
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
   const computeDistance = (): number => {
     if (breadcrumbs.length < 2) return 0;
     let total = 0;
@@ -149,17 +149,17 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
           maxWidth: '300px',
         }}
       >
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <strong>GPS Fix Status</strong>
         </div>
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <strong>ROS Connection:</strong>{' '}
           <span style={{ color: connectionStatus === 'connected' ? 'green' : 'red' }}>
             {connectionStatus}
           </span>
         </div>
         {lastFix ? (
-          <div style={{ marginBottom: '0.5rem' }}>
+          <div style={{ marginBottom: '0.125rem' }}>
             <strong>Last Fix:</strong>
             <br />
             {/* TODO: Is this enough percision? */}
@@ -174,15 +174,15 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
             Time: {new Date(lastFix.timestamp).toLocaleTimeString()}
           </div>
         ) : (
-          <div style={{ marginBottom: '0.5rem' }}>No fix data received yet.</div>
+          <div style={{ marginBottom: '0.125rem' }}>No fix data received yet.</div>
         )}
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <strong>Total Fixes:</strong> {breadcrumbs.length}
         </div>
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <strong>Total Distance:</strong> {totalDistance.toFixed(2)} km
         </div>
-        <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ marginBottom: '0.125rem' }}>
           <button
             onClick={() => setPaused(!paused)}
             style={{

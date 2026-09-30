@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ROSLIB from 'roslib';
 import { useROS } from '@/ros/ROSContext';
+import { LatLngTuple } from 'leaflet';
+import { haversineDistance } from '../BreadCrumbTrail';
 
 const AntennaControlPanel: React.FC = () => {
   const { ros } = useROS();
@@ -9,6 +11,10 @@ const AntennaControlPanel: React.FC = () => {
   const [enabled, setEnabled] = useState(false);
   const [leftHeld, setLeftHeld] = useState(false);
   const [rightHeld, setRightHeld] = useState(false);
+  const [roverLoc, setRoverLoc] = useState<[number, number]>([0, 0]);
+  const [antennaLoc, setAntennaLoc] = useState<[number, number]>([0, 0]);
+  const [bearing, setBearing] = useState<number>(0);
+  const [targetBearing, setTargetBearing] = useState<number>(0);
 
   const antStatusTopicRef = useRef<ROSLIB.Topic | null>(null);
   const antValTopicRef = useRef<ROSLIB.Topic | null>(null);
@@ -33,6 +39,56 @@ const AntennaControlPanel: React.FC = () => {
       messageType: 'std_msgs/Bool',
     });
 
+    const fixTopic = new ROSLIB.Topic({
+      ros,
+      name: '/gps/fix',
+      messageType: 'sensor_msgs/NavSatFix',
+    });
+    
+    const antennaFixTopic = new ROSLIB.Topic({
+      ros,
+      name: '/base_station/fix',
+      messageType: 'sensor_msgs/NavSatFix',
+    });
+
+    const bearingTopic = new ROSLIB.Topic({
+      ros,
+      name: '/antenna/bearing',
+      messageType: 'std_msgs/Float32',
+    });
+    
+    const targetBearingTopic = new ROSLIB.Topic({
+      ros,
+      name: '/antenna/target_bearing',
+      messageType: 'std_msgs/Float32',
+    });
+    
+    const handleFix = (message: any) => {
+      // Assuming the /fix message contains 'latitude' and 'longitude'
+      const { latitude, longitude } = message;
+      setRoverLoc([latitude, longitude]);
+    }
+
+    const handleAntennaFix = (message: any) => {
+      // Assuming the /fix message contains 'latitude' and 'longitude'
+      const { latitude, longitude } = message;
+      setAntennaLoc([latitude, longitude]);
+    };
+
+    const handleBearing = (message: any) => {
+      const angle = message.data * 180 / Math.PI;
+      setBearing(angle);
+    };
+   
+    const handleTargetBearing = (message: any) => {
+      const angle = message.data * 180 / Math.PI;
+      setTargetBearing(angle);
+    };
+    
+    fixTopic.subscribe(handleFix);
+    antennaFixTopic.subscribe(handleAntennaFix);
+    bearingTopic.subscribe(handleBearing);
+    targetBearingTopic.subscribe(handleTargetBearing);
     return () => {
       try {
         antStatusTopicRef.current?.unadvertise();
@@ -42,14 +98,17 @@ const AntennaControlPanel: React.FC = () => {
       }
       antStatusTopicRef.current = null;
       antValTopicRef.current = null;
+      antennaFixTopic.unsubscribe(handleAntennaFix);
+      bearingTopic.unsubscribe(handleBearing);
+      targetBearingTopic.unsubscribe(handleTargetBearing);
     };
   }, [ros]);
 
   // Determine what value should be published right now
   const computeValue = () => {
     if (enabled) return 0.0;
-    if (leftHeld && !rightHeld) return -0.125;
-    if (rightHeld && !leftHeld) return 0.125;
+    if (leftHeld && !rightHeld) return -Math.PI / 180;
+    if (rightHeld && !leftHeld) return Math.PI / 180;
     return 0.0; // neither held OR both held
   };
 
@@ -99,6 +158,8 @@ const AntennaControlPanel: React.FC = () => {
 
   const btnDisabled = enabled || !ros;
 
+  const bearingDelta = (targetBearing - bearing + 180) % 360 - 180
+
   return (
     <div className="antenna-panel">
       <div className="controls">
@@ -128,16 +189,34 @@ const AntennaControlPanel: React.FC = () => {
           Right
         </button>
       </div>
-
-      <label className="checkbox">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
-        />
-        Auto tracking
-      </label>
-
+      <div style={{ marginBottom: '0.125rem' }}>
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => setEnabled(e.target.checked)}
+          />
+          Auto tracking
+        </label>
+      </div>
+      <div style={{ marginBottom: '0.125rem' }}>
+        <strong>Pointing:</strong>
+        <br />
+        Delta: <span className={Math.abs(bearingDelta) < 15 ? 'ok' : 'bad'}>{bearingDelta.toFixed(1)}</span>°
+        <br />
+        Bearing: {bearing.toFixed(1)}°
+        <br />
+        Target Bearing: {targetBearing.toFixed(1)}°
+      </div>
+      <div style={{ marginBottom: '0.125rem' }}>
+        <strong>Location:</strong>
+        <br />
+          Distance to Rover: {(haversineDistance(antennaLoc, roverLoc) * 1000).toFixed(2)} m
+          <br />
+          Lat: {antennaLoc[0].toFixed(6)}
+          <br />
+          Lon: {antennaLoc[1].toFixed(6)}
+      </div>
       <style jsx>{`
         .antenna-panel {
           background: #1e1e1e;
