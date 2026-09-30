@@ -11,8 +11,8 @@ const AntennaControlPanel: React.FC = () => {
   const [enabled, setEnabled] = useState(false);
   const [leftHeld, setLeftHeld] = useState(false);
   const [rightHeld, setRightHeld] = useState(false);
-  const [roverLoc, setRoverLoc] = useState<LatLngTuple>([0, 0]);
-  const [antennaLoc, setAntennaLoc] = useState<LatLngTuple>([0, 0]);
+  const [roverLoc, setRoverLoc] = useState<[number, number]>([0, 0]);
+  const [antennaLoc, setAntennaLoc] = useState<[number, number]>([0, 0]);
   const [bearing, setBearing] = useState<number>(0);
   const [targetBearing, setTargetBearing] = useState<number>(0);
 
