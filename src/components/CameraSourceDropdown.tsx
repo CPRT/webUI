@@ -9,7 +9,6 @@ interface CameraSourceDropdownProps {
   onChange: (source: string) => void;
 }
 
-interface GetCamerasRequest {};
 interface GetCamerasResponse {
   sources: string[];
 }
@@ -24,7 +23,7 @@ const CameraSourceDropdown: React.FC<CameraSourceDropdownProps> = ({ onChange })
       console.error("ROS connection is not established.");
       return;
     }
-    const service = new Service<GetCamerasRequest, GetCamerasResponse>({
+    const service = new Service<{}, GetCamerasResponse>({
       ros: ros!,
       name: "/input_node/get_cameras",
       serviceType: "interfaces/srv/GetCameras", // adjust service type if it's differently named
