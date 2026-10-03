@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import ROSLIB from "roslib";
+import { Topic } from "roslib";
 import { useROS } from "@/ros/ROSContext";
 
 type SrtStatsMsg = {
@@ -46,13 +46,13 @@ const SrtStats: React.FC = () => {
       return;
     }
 
-    const topic = new ROSLIB.Topic({
+    const topic = new Topic<SrtStatsMsg>({
       ros,
       name: "/srt_node/srt_stats",
       messageType: "interfaces/msg/SrtStats",
     });
 
-    const onMsg = (msg: any) => {
+    const onMsg = (msg: SrtStatsMsg) => {
       const newData: SrtStatsMsg = {
         rtt: msg.rtt,
         bandwidth: msg.bandwidth,

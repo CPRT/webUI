@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import ROSLIB from "roslib";
+import { Service } from "roslib";
 import CameraSourceDropdown from "./CameraSourceDropdown";
 import { useROS } from "@/ros/ROSContext";
 import { Console } from "console";
@@ -18,6 +18,11 @@ interface VideoCaptureResponse {
   success: boolean;
 }
 
+interface VideoCaptureRequest {
+  source: string;
+  filename: string;
+};
+
 const VideoCapturePanel: React.FC = () => {
   const { ros, connectionStatus } = useROS();
   const [source, setSource] = useState("");
@@ -33,12 +38,13 @@ const VideoCapturePanel: React.FC = () => {
     }
     console.log("Capturing image from source:", source);
 
-    const captureService = new ROSLIB.Service({
+    const captureService = new Service<VideoCaptureRequest, VideoCaptureResponse>({
       ros,
       name: "/capture_frame",
       serviceType: "interfaces/srv/VideoCapture",
     });
-    const panService = new ROSLIB.Service({
+
+    const panService = new Service<VideoCaptureRequest, VideoCaptureResponse>({
       ros,
       name: "/capture_panoramic",
       serviceType: "interfaces/srv/VideoCapture",
@@ -68,7 +74,9 @@ const VideoCapturePanel: React.FC = () => {
         console.error("Failed to capture image.");
       }
     }
-    const request = new ROSLIB.ServiceRequest({ source, filename });
+    
+    const request: VideoCaptureRequest = { source, filename };
+
     if (source === "Panoramic") {
       panService.callService(request, capture_cb);
     } else {

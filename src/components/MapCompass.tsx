@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from "react";
-import ROSLIB from 'roslib';
+import { Topic } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
 type Quaternion = {
@@ -7,6 +7,11 @@ type Quaternion = {
   y: number;
   z: number;
   w: number;
+};
+
+type ImuMessage = { 
+    orientation: Quaternion;
+    orientation_covariance: number[];
 };
 
 //extract yaw, convert to degrees, normalize
@@ -28,14 +33,14 @@ const MapCompass: React.FC = () => {
     useEffect(() => {
         if (!ros) return;
 
-        const headingTopic = new ROSLIB.Topic({
+        const headingTopic = new Topic<ImuMessage>({
             ros,
             name: '/gps/heading',
             messageType: 'sensor_msgs/Imu',
             throttle_rate: 100,
         });
 
-        const handleHeading = (msg: any) => {
+        const handleHeading = (msg: ImuMessage) => {
             if (msg.orientation_covariance[8] > 50) {
                 setValid(false);
                 return;
