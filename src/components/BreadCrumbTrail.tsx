@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Circle, Polyline, useMap } from 'react-leaflet';
 import { useROS } from '@/ros/ROSContext';
 import { useWaypoints } from '@/contexts/WaypointContext';
-import ROSLIB from 'roslib';
+import { Topic } from 'roslib';
 
 interface Breadcrumb {
   coordinate: [number, number];
@@ -45,7 +45,7 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
   useEffect(() => {
     if (!ros) return;
 
-    const fixTopic = new ROSLIB.Topic({
+    const fixTopic = new Topic({
       ros,
       name: '/gps/fix',
       messageType: 'sensor_msgs/NavSatFix',

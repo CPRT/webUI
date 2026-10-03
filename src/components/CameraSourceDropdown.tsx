@@ -1,12 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import ROSLIB from "roslib";
+import { Service } from "roslib";
 import { useROS } from "@/ros/ROSContext";
 import { FaSyncAlt } from "react-icons/fa";
 
 interface CameraSourceDropdownProps {
   onChange: (source: string) => void;
+}
+
+interface GetCamerasRequest {};
+interface GetCamerasResponse {
+  sources: string[];
 }
 
 const CameraSourceDropdown: React.FC<CameraSourceDropdownProps> = ({ onChange }) => {
@@ -19,15 +24,13 @@ const CameraSourceDropdown: React.FC<CameraSourceDropdownProps> = ({ onChange })
       console.error("ROS connection is not established.");
       return;
     }
-    const service = new ROSLIB.Service({
+    const service = new Service<GetCamerasRequest, GetCamerasResponse>({
       ros: ros!,
       name: "/input_node/get_cameras",
       serviceType: "interfaces/srv/GetCameras", // adjust service type if it's differently named
     });
 
-    const request = new ROSLIB.ServiceRequest({});
-
-    service.callService(request, (result) => {
+    service.callService({}, (result) => {
       if (result && Array.isArray(result.sources)) {
         setSources(result.sources);
         if (result.sources.length > 0) {

@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useROS } from '@/ros/ROSContext';
-import ROSLIB from 'roslib';
+import { Topic } from "roslib";
 import BusVoltageIndicator from '@/components/BusVoltageIndicator';
 
 const getVoltageColor = (voltage: number | null) => {
@@ -23,7 +23,7 @@ const BusVoltageDisplay: React.FC = () => {
 
   useEffect(() => {
     if (!ros) return;
-    const voltageTopic = new ROSLIB.Topic({
+    const voltageTopic = new Topic({
       ros,
       name: '/Left_front_wheel_joint/status',
       messageType: 'ros_phoenix/msg/MotorStatus',
