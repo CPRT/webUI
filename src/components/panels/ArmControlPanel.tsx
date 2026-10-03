@@ -1,8 +1,27 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import ROSLIB from 'roslib';
+import { Service } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
+
+interface GetNamedTargetsResponse {
+  success?: boolean;
+  message?: string;
+  names?: string[];
+};
+
+interface ParameterValue {
+  type?: number,
+  bool_value?: boolean;
+  integer_value?: number;
+  double_value?: number;
+  string_value?: string;
+};
+
+interface GetParametersRequest { names: string[]; };
+interface GetParametersResponse {
+  values?: ParameterValue[];
+};
 
 const ArmControlPanel: React.FC = () => {
   const { ros } = useROS();
@@ -22,17 +41,16 @@ const ArmControlPanel: React.FC = () => {
   const refreshPoseNames = (preferredPose?: string) => {
     if (!ros) return;
 
-    const service = new ROSLIB.Service({
+    const service = new Service<{}, GetNamedTargetsResponse>({
       ros,
       name: '/move_group_interface/get_named_targets',
       serviceType: 'interfaces/srv/GetNamedTargets',
     });
 
-    const request = new ROSLIB.ServiceRequest({});
-
-    service.callService(request, (result: any) => {
+    service.callService({}, (result: GetNamedTargetsResponse) => {
       const success = result.success ?? false;
       const msg = result.message ?? '';
+
       if (!success) {
         setPoseNames([]);
         setSelectedPose('');
@@ -58,17 +76,15 @@ const ArmControlPanel: React.FC = () => {
 
     setCollisionParameterLoaded(false);
 
-    const service = new ROSLIB.Service({
+    const service = new Service<GetParametersRequest, GetParametersResponse>({
       ros,
       name: '/servo_node/get_parameters',
       serviceType: 'rcl_interfaces/srv/GetParameters',
     });
 
-    const request = new ROSLIB.ServiceRequest({
-      names: ['moveit_servo.check_collisions'],
-    });
+    const request: GetParametersRequest = { names: ['moveit_servo.check_collisions'] };
 
-    service.callService(request, (result: any) => {
+    service.callService(request, (result: GetParametersResponse) => {
       const value = result.values?.[0];
 
       if (!value || value.type !== 1) {
