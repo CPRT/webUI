@@ -1,6 +1,6 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import ROSLIB from 'roslib';
+import { Topic } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 import { LatLngTuple } from 'leaflet';
 import { haversineDistance } from '../BreadCrumbTrail';
@@ -16,8 +16,8 @@ const AntennaControlPanel: React.FC = () => {
   const [bearing, setBearing] = useState<number>(0);
   const [targetBearing, setTargetBearing] = useState<number>(0);
 
-  const antStatusTopicRef = useRef<ROSLIB.Topic | null>(null);
-  const antValTopicRef = useRef<ROSLIB.Topic | null>(null);
+  const antStatusTopicRef = useRef<Topic<{ data: boolean }> | null>(null);
+  const antValTopicRef = useRef<Topic<{ data: number }> | null>(null);
   const intervalRef = useRef<number | null>(null);
 
   // Create/cleanup topic when ROS connection changes
@@ -27,60 +27,58 @@ const AntennaControlPanel: React.FC = () => {
       return;
     }
 
-    antValTopicRef.current = new ROSLIB.Topic({
+    antValTopicRef.current = new Topic<{ data: number }>({
       ros,
       name: '/antenna/manual_value',
       messageType: 'std_msgs/Float32',
     });
 
-    antStatusTopicRef.current = new ROSLIB.Topic({
+    antStatusTopicRef.current = new Topic<{ data: boolean }>({
       ros,
       name: '/antenna/manual',
       messageType: 'std_msgs/Bool',
     });
 
-    const fixTopic = new ROSLIB.Topic({
+    const fixTopic = new Topic<{ latitude: number; longitude: number }>({
       ros,
       name: '/gps/fix',
       messageType: 'sensor_msgs/NavSatFix',
     });
-    
-    const antennaFixTopic = new ROSLIB.Topic({
+
+    const antennaFixTopic = new Topic<{ latitude: number; longitude: number }>({
       ros,
       name: '/base_station/fix',
       messageType: 'sensor_msgs/NavSatFix',
     });
 
-    const bearingTopic = new ROSLIB.Topic({
+    const bearingTopic = new Topic<{ data: number }>({
       ros,
       name: '/antenna/bearing',
       messageType: 'std_msgs/Float32',
     });
-    
-    const targetBearingTopic = new ROSLIB.Topic({
+
+    const targetBearingTopic = new Topic<{ data: number }>({
       ros,
       name: '/antenna/target_bearing',
       messageType: 'std_msgs/Float32',
     });
-    
-    const handleFix = (message: any) => {
-      // Assuming the /fix message contains 'latitude' and 'longitude'
+
+    const handleFix = (message: { latitude: number; longitude: number }) => {
       const { latitude, longitude } = message;
       setRoverLoc([latitude, longitude]);
-    }
+    };
 
-    const handleAntennaFix = (message: any) => {
-      // Assuming the /fix message contains 'latitude' and 'longitude'
+    const handleAntennaFix = (message: { latitude: number; longitude: number }) => {
       const { latitude, longitude } = message;
       setAntennaLoc([latitude, longitude]);
     };
 
-    const handleBearing = (message: any) => {
+    const handleBearing = (message: { data: number }) => {
       const angle = message.data * 180 / Math.PI;
       setBearing(angle);
     };
-   
-    const handleTargetBearing = (message: any) => {
+
+    const handleTargetBearing = (message: { data: number }) => {
       const angle = message.data * 180 / Math.PI;
       setTargetBearing(angle);
     };
@@ -126,8 +124,8 @@ const AntennaControlPanel: React.FC = () => {
     const publishNow = () => {
       const value = computeValue();
       const manual_mode = !enabled;
-      antValTopicRef.current?.publish(new ROSLIB.Message({ data: value }));
-      antStatusTopicRef.current?.publish(new ROSLIB.Message({ data: manual_mode }));
+      antValTopicRef.current?.publish({ data: value });
+      antStatusTopicRef.current?.publish({ data: manual_mode });
     };
 
     publishNow();

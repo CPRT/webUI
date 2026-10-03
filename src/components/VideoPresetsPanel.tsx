@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { VideoOutRequest, VideoSource } from "./panels/VideoControls";
-import ROSLIB from "roslib";
+import { Topic } from "roslib";
 import { useROS } from "@/ros/ROSContext";
 
 interface VideoPresetsPanelProps {
@@ -40,16 +40,15 @@ const VideoPresetsPanel: React.FC<VideoPresetsPanelProps> = ({
       return;
     }
 
-    const presetsTopic = new ROSLIB.Topic({
+    const presetsTopic = new Topic<VideoPresetsMessage>({
       ros,
       name: "/video_presets",
       messageType: "interfaces/msg/VideoPresets",
       queue_size: 1,
     });
 
-    const handlePresets = (message: ROSLIB.Message) => {
-      const presetsMessage = message as unknown as VideoPresetsMessage;
-      setPresets(presetsMessage.presets ?? []);
+    const handlePresets = (message: VideoPresetsMessage) => {
+      setPresets(message.presets ?? []);
     };
 
     presetsTopic.subscribe(handlePresets);
