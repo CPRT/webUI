@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Service } from "roslib";
 import CameraSourceDropdown from "./CameraSourceDropdown";
 import { useROS } from "@/ros/ROSContext";
-import { Console } from "console";
 
 interface VideoCaptureResponse {
   image: {
@@ -74,7 +73,7 @@ const VideoCapturePanel: React.FC = () => {
         console.error("Failed to capture image.");
       }
     }
-    
+
     const request: VideoCaptureRequest = { source, filename };
 
     if (source === "Panoramic") {
