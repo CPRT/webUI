@@ -1,14 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Service } from 'roslib';
+import { Service, Topic } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
-
-interface GetNamedTargetsResponse {
-  success?: boolean;
-  message?: string;
-  names?: string[];
-};
 
 interface ParameterValue {
   type?: number,
@@ -18,10 +12,26 @@ interface ParameterValue {
   string_value?: string;
 };
 
+interface Parameter {
+  name: string;
+  value: { type: number } & Partial<ParameterValue>
+}
+
+interface GetNamedTargetsResponse { success?: boolean; message?: string; names?: string[]; };
+
 interface GetParametersRequest { names: string[]; };
-interface GetParametersResponse {
-  values?: ParameterValue[];
-};
+interface GetParametersResponse { values?: ParameterValue[]; };
+
+interface SetParametersRequest { parameters: Parameter[]; }
+interface SetParametersResponse { results: { successful: boolean, reason: string }[]; }
+
+interface SaveCurrentPoseRequest { name: string; }
+interface SaveCurrentPoseResponse { success?: boolean; message?: string; }
+
+interface GoToNamedPoseRequest { name: string; }
+interface GoToNamedPoseResponse { success: boolean; message: string; }
+
+interface TriggerResponse { success: boolean; message: string; }
 
 const ArmControlPanel: React.FC = () => {
   const { ros } = useROS();
@@ -109,14 +119,14 @@ const ArmControlPanel: React.FC = () => {
   useEffect(() => {
     if (!ros) return;
 
-    const stateTopic = new ROSLIB.Topic({
+    const stateTopic = new Topic<{ data: string }>({
       ros,
       name: '/arm_teleop_node/state',
       messageType: 'std_msgs/msg/String',
       queue_size: 1,
     });
 
-    const handleState = (msg: any) => {
+    const handleState = (msg: { data: string }) => {
       setArmState(msg.data);
     };
 
@@ -130,14 +140,15 @@ const ArmControlPanel: React.FC = () => {
   useEffect(() => {
     if (!ros) return;
 
-    const statusTopic = new ROSLIB.Topic({
+    // NOTE: code is unused here but the ServoStatus Message def. has it as a field
+    const statusTopic = new Topic<{ code: number, message: string }>({
       ros,
       name: '/servo_node/status',
       messageType: 'moveit_msgs/msg/ServoStatus',
       queue_size: 1,
     });
 
-    const handleServoStatus = (msg: any) => {
+    const handleServoStatus = (msg: { code: number, message: string }) => {
       setServoStatus(msg.message);
     };
 
@@ -151,13 +162,13 @@ const ArmControlPanel: React.FC = () => {
   useEffect(() => {
     if (!ros) return;
 
-    const distanceTopic = new ROSLIB.Topic({
+    const distanceTopic = new Topic<{ distance: number, status: number }>({
       ros,
       name: '/eef_distance',
       messageType: 'interfaces/msg/Distance',
     });
 
-    const handleDistance = (msg: any) => {
+    const handleDistance = (msg: { distance: number, status: number }) => {
       setDistance(msg.distance);
       setDistanceStatus(msg.status);
     };
@@ -188,13 +199,13 @@ const ArmControlPanel: React.FC = () => {
 
     setCollisionParameterUpdating(true);
 
-    const service = new ROSLIB.Service({
+    const service = new Service<SetParametersRequest, SetParametersResponse>({
       ros,
       name: '/servo_node/set_parameters',
       serviceType: 'rcl_interfaces/srv/SetParameters',
     });
 
-    const request = new ROSLIB.ServiceRequest({
+    const request: SetParametersRequest = {
       parameters: [
         {
           name: 'moveit_servo.check_collisions',
@@ -204,9 +215,9 @@ const ArmControlPanel: React.FC = () => {
           },
         },
       ],
-    });
+    };
 
-    service.callService(request, (result: any) => {
+    service.callService(request, (result: SetParametersResponse) => {
       const parameterResult = result.results?.[0];
       const success = parameterResult?.successful ?? false;
       const reason = parameterResult?.reason ?? '';
@@ -243,17 +254,15 @@ const ArmControlPanel: React.FC = () => {
       return;
     }
 
-    const service = new ROSLIB.Service({
+    const service = new Service<SaveCurrentPoseRequest, SaveCurrentPoseResponse>({
       ros,
       name: '/move_group_interface/save_current_pose',
       serviceType: 'interfaces/srv/SaveCurrentPose',
     });
 
-    const request = new ROSLIB.ServiceRequest({
-      name,
-    });
+    const request: SaveCurrentPoseRequest = { name };
 
-    service.callService(request, (result: any) => {
+    service.callService(request, (result: SaveCurrentPoseResponse) => {
       const success = result.success ?? false;
       const message = result.message ?? '';
 
@@ -280,17 +289,15 @@ const ArmControlPanel: React.FC = () => {
       return;
     }
 
-    const service = new ROSLIB.Service({
+    const service = new Service<GoToNamedPoseRequest, GoToNamedPoseResponse>({
       ros,
       name: '/move_group_interface/go_to_named_pose',
       serviceType: 'interfaces/srv/GoToNamedPose',
     });
 
-    const request = new ROSLIB.ServiceRequest({
-      name: selectedPose,
-    });
+    const request: GoToNamedPoseRequest = { name: selectedPose };
 
-    service.callService(request, (result: any) => {
+    service.callService(request, (result: GoToNamedPoseResponse) => {
       setResponse({
         success: result.success,
         message: result.message,
@@ -304,15 +311,13 @@ const ArmControlPanel: React.FC = () => {
       return;
     }
 
-    const service = new ROSLIB.Service({
+    const service = new Service<{}, TriggerResponse>({
       ros,
       name: '/move_group_interface/stop',
       serviceType: 'std_srvs/srv/Trigger',
     });
 
-    const request = new ROSLIB.ServiceRequest({});
-
-    service.callService(request, (result: any) => {
+    service.callService({}, (result: TriggerResponse) => {
       setResponse({
         success: result.success,
         message: result.message,
