@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import ROSLIB from 'roslib';
+import { Topic } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
 const DRIVE_THROTTLE_COOKIE = 'drive_throttle';
@@ -41,7 +41,7 @@ const DriveThrottlePanel: React.FC = () => {
   const [throttleValue, setThrottleValue] = useState(100);
   const [cookiesLoaded, setCookiesLoaded] = useState(false);
 
-  const throttleTopicRef = useRef<ROSLIB.Topic | null>(null);
+  const throttleTopicRef = useRef<Topic<{ data: number }> | null>(null);
 
   useEffect(() => {
     setThrottleValue(getCookieNumber(DRIVE_THROTTLE_COOKIE, 100));
@@ -60,7 +60,7 @@ const DriveThrottlePanel: React.FC = () => {
       return;
     }
 
-    throttleTopicRef.current = new ROSLIB.Topic({
+    throttleTopicRef.current = new Topic<{ data: number }>({
       ros,
       name: '/drive_throttle',
       messageType: 'std_msgs/Float32',
@@ -80,11 +80,9 @@ const DriveThrottlePanel: React.FC = () => {
   useEffect(() => {
     if (!ros || !cookiesLoaded) return;
 
-    throttleTopicRef.current?.publish(
-      new ROSLIB.Message({
-        data: throttlePercentToFloat(throttleValue),
-      })
-    );
+    throttleTopicRef.current?.publish({
+      data: throttlePercentToFloat(throttleValue),
+    });
   }, [ros, cookiesLoaded, throttleValue]);
 
   const throttleOff = () => {

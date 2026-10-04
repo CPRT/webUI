@@ -17,6 +17,7 @@ interface Parameter {
   value: { type: number } & Partial<ParameterValue>
 }
 
+// TODO: lots of interfaces, should these just be inline?
 interface GetNamedTargetsResponse { success?: boolean; message?: string; names?: string[]; };
 
 interface GetParametersRequest { names: string[]; };
