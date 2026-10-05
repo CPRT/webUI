@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import ROSLIB from 'roslib';
+import { Topic } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
 const LEFT_HEADLIGHT_COOKIE = 'left_headlight_brightness';
@@ -52,8 +52,8 @@ const HeadlightControlPanel: React.FC = () => {
   const [rightValue, setRightValue] = useState(0);
   const [cookiesLoaded, setCookiesLoaded] = useState(false);
 
-  const leftTopicRef = useRef<ROSLIB.Topic | null>(null);
-  const rightTopicRef = useRef<ROSLIB.Topic | null>(null);
+  const leftTopicRef = useRef<Topic<{ data: number }> | null>(null);
+  const rightTopicRef = useRef<Topic<{ data: number }> | null>(null);
 
   useEffect(() => {
     setLeftValue(getCookieNumber(LEFT_HEADLIGHT_COOKIE, 0));
@@ -80,13 +80,13 @@ const HeadlightControlPanel: React.FC = () => {
       return;
     }
 
-    leftTopicRef.current = new ROSLIB.Topic({
+    leftTopicRef.current = new Topic<{ data: number }>({
       ros,
       name: '/left_headlight',
       messageType: 'std_msgs/Int8',
     });
 
-    rightTopicRef.current = new ROSLIB.Topic({
+    rightTopicRef.current = new Topic<{ data: number }>({
       ros,
       name: '/right_headlight',
       messageType: 'std_msgs/Int8',
@@ -108,17 +108,13 @@ const HeadlightControlPanel: React.FC = () => {
   useEffect(() => {
     if (!ros || !cookiesLoaded) return;
 
-    leftTopicRef.current?.publish(
-      new ROSLIB.Message({
-        data: perceivedBrightnessToPWM(leftValue),
-      })
-    );
+    leftTopicRef.current?.publish({
+      data: perceivedBrightnessToPWM(leftValue),
+    });
 
-    rightTopicRef.current?.publish(
-      new ROSLIB.Message({
-        data: perceivedBrightnessToPWM(rightValue),
-      })
-    );
+    rightTopicRef.current?.publish({
+      data: perceivedBrightnessToPWM(rightValue),
+    });
   }, [ros, cookiesLoaded, leftValue, rightValue]);
 
   const allOff = () => {

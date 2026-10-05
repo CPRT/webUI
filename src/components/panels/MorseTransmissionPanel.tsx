@@ -1,7 +1,8 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import ROSLIB from 'roslib';
+import { Topic, Service } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
+import { GetParametersRequest, GetParametersResponse, SetParametersRequest, SetParametersResponse } from '@/ros/standard-types';
 
 type DetectionType = 'NONE' | 'MORSE' | string;
 
@@ -15,7 +16,7 @@ const MorseTransmissionPanel: React.FC = () => {
   const [updating, setUpdating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
-  const topicRef = useRef<ROSLIB.Topic | null>(null);
+  const topicRef = useRef<Topic<{ data: string }> | null>(null);
 
   useEffect(() => {
     if (!ros) {
@@ -25,19 +26,20 @@ const MorseTransmissionPanel: React.FC = () => {
       return;
     }
 
-    topicRef.current = new ROSLIB.Topic({
+    topicRef.current = new Topic<{ data: string }>({
       ros,
       name: '/morse_transmission',
       messageType: 'std_msgs/msg/String',
     });
 
-    const morseTextTopic = new ROSLIB.Topic({
+    // NOTE: not sure what's going on with the dynamic type checking here, leaving it for now.
+    const morseTextTopic = new Topic({
       ros,
       name: '/morse_text',
       messageType: 'std_msgs/msg/String',
     });
 
-    const handleMorseText = (msg: ROSLIB.Message) => {
+    const handleMorseText = (msg: any) => {
       const data = (msg as { data?: string }).data;
       setReceivedText(typeof data === 'string' ? data : '');
     };
@@ -58,17 +60,17 @@ const MorseTransmissionPanel: React.FC = () => {
   const refreshDetectionType = () => {
     if (!ros) return;
 
-    const service = new ROSLIB.Service({
+    const service = new Service<GetParametersRequest, GetParametersResponse>({
       ros,
       name: '/detect_node/get_parameters',
       serviceType: 'rcl_interfaces/srv/GetParameters',
     });
 
-    const request = new ROSLIB.ServiceRequest({
+    const request: GetParametersRequest = {
       names: ['detection_type'],
-    });
+    };
 
-    service.callService(request, (result: any) => {
+    service.callService(request, (result: GetParametersResponse) => {
       const value = result.values?.[0];
       if (!value || value.type !== 4) {
         setStatus('Failed to read detection_type');
@@ -92,17 +94,17 @@ const MorseTransmissionPanel: React.FC = () => {
     setUpdating(true);
     setStatus(null);
 
-    const service = new ROSLIB.Service({
+    const service = new Service<SetParametersRequest, SetParametersResponse>({
       ros,
       name: '/detect_node/set_parameters',
       serviceType: 'rcl_interfaces/srv/SetParameters',
     });
 
-    const request = new ROSLIB.ServiceRequest({
+    const request: SetParametersRequest = {
       parameters: [{ name, value }],
-    });
+    };
 
-    service.callService(request, (result: any) => {
+    service.callService(request, (result: SetParametersResponse) => {
       const parameterResult = result.results?.[0];
       const success = parameterResult?.successful ?? false;
       const reason = parameterResult?.reason ?? '';
@@ -139,7 +141,7 @@ const MorseTransmissionPanel: React.FC = () => {
 
   const send = () => {
     if (!topicRef.current || !message) return;
-    topicRef.current.publish(new ROSLIB.Message({ data: message }));
+    topicRef.current.publish({ data: message });
     setLastSent(message);
   };
 

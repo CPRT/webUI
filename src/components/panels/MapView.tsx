@@ -10,7 +10,7 @@ import WaypointCreatorWindow from '../WaypointCreatorWindow';
 import MapInteractionHandler from '../MapInteractionHandler';
 import MapCompass from '../MapCompass';
 import { useROS } from '@/ros/ROSContext';
-import ROSLIB from 'roslib';
+import { Topic } from 'roslib';
 import { TILING_SERVER } from '@/constants';
 import html2canvas from 'html2canvas';
 
@@ -56,37 +56,39 @@ const MapView: React.FC<MapViewProps> = ({offline}) => {
   useEffect(() => {
     if (!ros) return;
 
-    const droneTopic = new ROSLIB.Topic({
+    type LngLatObj = { latitude: number, longitude: number };
+
+    const droneTopic = new Topic<LngLatObj>({
       ros,
       name: '/mavros_node/mavros_node/global',
       messageType: 'sensor_msgs/NavSatFix',
     });
 
-    const antennaFixTopic = new ROSLIB.Topic({
+    const antennaFixTopic = new Topic<LngLatObj>({
       ros,
       name: '/base_station/fix',
       messageType: 'sensor_msgs/NavSatFix',
     });
 
-    const antennaBearingTopic = new ROSLIB.Topic({
+    const antennaBearingTopic = new Topic<{ data: number }>({
       ros,
       name: '/antenna/tracker_bearing',
       messageType: 'std_msgs/Float32',
     });
 
-    const handleDrone = (message: any) => {
+    const handleDrone = (message: LngLatObj) => {
       // Assuming the /fix message contains 'latitude' and 'longitude'
       const { latitude, longitude } = message;
       setDroneLoc([latitude, longitude]);
     };
     
-    const handleAntennaFix = (message: any) => {
+    const handleAntennaFix = (message: LngLatObj) => {
       // Assuming the /fix message contains 'latitude' and 'longitude'
       const { latitude, longitude } = message;
       setAntennaLoc([latitude, longitude]);
     };
 
-    const handleAntennaBearing = (message: any) => {
+    const handleAntennaBearing = (message: { data: number }) => {
       // Assuming the message contains float32
       const angle = message.data * 360;
       setAntennaHead(angle);

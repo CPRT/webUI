@@ -3,36 +3,16 @@
 import React, { useEffect, useState } from 'react';
 import { Service, Topic } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
-
-interface ParameterValue {
-  type?: number,
-  bool_value?: boolean;
-  integer_value?: number;
-  double_value?: number;
-  string_value?: string;
-};
-
-interface Parameter {
-  name: string;
-  value: { type: number } & Partial<ParameterValue>
-}
+import { GetParametersRequest, GetParametersResponse, SetParametersRequest, SetParametersResponse, TriggerResponse } from '@/ros/standard-types';
 
 // TODO: lots of interfaces, should these just be inline?
 interface GetNamedTargetsResponse { success?: boolean; message?: string; names?: string[]; };
-
-interface GetParametersRequest { names: string[]; };
-interface GetParametersResponse { values?: ParameterValue[]; };
-
-interface SetParametersRequest { parameters: Parameter[]; }
-interface SetParametersResponse { results: { successful: boolean, reason: string }[]; }
 
 interface SaveCurrentPoseRequest { name: string; }
 interface SaveCurrentPoseResponse { success?: boolean; message?: string; }
 
 interface GoToNamedPoseRequest { name: string; }
 interface GoToNamedPoseResponse { success: boolean; message: string; }
-
-interface TriggerResponse { success: boolean; message: string; }
 
 const ArmControlPanel: React.FC = () => {
   const { ros } = useROS();

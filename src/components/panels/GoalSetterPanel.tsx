@@ -1,7 +1,15 @@
 'use client';
 import React, { useState } from 'react';
-import ROSLIB from 'roslib';
+import { Service } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
+
+interface SetGoalRequest { 
+  goal: { 
+    position: { latitude: number; longitude: number; altitude: number; },
+    orientation: { x: number; y: number; z: number; w: number; }
+  }
+}
+interface SetGoalResponse { success: boolean; status: string }
 
 const GoalSetterPanel: React.FC = () => {
   const { ros } = useROS();
@@ -15,13 +23,13 @@ const GoalSetterPanel: React.FC = () => {
       return;
     }
 
-    const service = new ROSLIB.Service({
+    const service = new Service<SetGoalRequest, SetGoalResponse>({
       ros,
       name: '/set_goal',
       serviceType: 'interfaces/srv/SetGoal',
     });
 
-    const request = new ROSLIB.ServiceRequest({
+    const request: SetGoalRequest = {
       goal: {
         position: {
           latitude: parseFloat(latitude),
@@ -35,9 +43,9 @@ const GoalSetterPanel: React.FC = () => {
           w: 1.0,
         },
       },
-    });
+    };
 
-    service.callService(request, (result: any) => {
+    service.callService(request, (result: SetGoalResponse) => {
       setResponse({ success: result.success, status: result.status });
     });
   };
