@@ -15,8 +15,8 @@ import {
   Legend,
 } from 'recharts';
 
-const WINDOW_MS = 60 * 1000;
-const DEFAULT_MAX_AMPS = 12;
+const WINDOW_SEC = 60;
+const DEFAULT_MAX_AMPS = 2;
 
 const CURRENT_MOTORS = {
   fl_d: { label: 'FL Drive', topic: '/Left_front_wheel_joint/status', color: '#4da3ff', dashed: false },
@@ -32,15 +32,16 @@ const CURRENT_MOTORS = {
 type MotorKey = keyof typeof CURRENT_MOTORS;
 const KEYS = Object.keys(CURRENT_MOTORS) as MotorKey[];
 
-type Point = { time: number; value: number };
+type Point = { time: number; value: number }; // time = seconds since the panel opened
 type CurrentHistory = Record<MotorKey, Point[]>;
 
-const emptyCurrentHistory= () => Object.fromEntries(KEYS.map((key) => [key, []])) as unknown as CurrentHistory;
+const emptyCurrentHistory = () => Object.fromEntries(KEYS.map((key) => [key, []])) as unknown as CurrentHistory;
 
 const MotorCurrentGraphPanel: React.FC = () => {
   const { ros } = useROS();
   const [currentHistory, setCurrentHistory] = useState<CurrentHistory>(emptyCurrentHistory);
   const containerRef = useRef<HTMLDivElement>(null);
+  const startTime = useRef(Date.now());
 
   useEffect(() => {
     if (!ros) return;
@@ -50,15 +51,14 @@ const MotorCurrentGraphPanel: React.FC = () => {
         ros,
         name: CURRENT_MOTORS[key].topic,
         messageType: 'ros_phoenix/msg/MotorStatus',
-        throttle_rate: 100,
       });
 
       const handler = (msg: any) => {
         const value = Number(msg.output_current);
         if (!Number.isFinite(value)) return;
 
-        const now = Date.now();
-        const cutoff = now - WINDOW_MS;
+        const now = (Date.now() - startTime.current) / 1000;
+        const cutoff = now - WINDOW_SEC;
 
         setCurrentHistory((prev) => {
           const next = {} as CurrentHistory;
@@ -77,14 +77,8 @@ const MotorCurrentGraphPanel: React.FC = () => {
     return () => unsubscribers.forEach((unsub) => unsub());
   }, [ros]);
 
-    const formatTime = (time: number) =>
-        new Date(time).toLocaleTimeString([], {
-        minute: '2-digit',
-        second: '2-digit',
-        });
-
-    const downloadPNG = async () => {
-        if (!containerRef.current) return;
+  const downloadPNG = async () => {
+    if (!containerRef.current) return;
 
     const canvas = await html2canvas(containerRef.current, {
       backgroundColor: '#181818',
@@ -103,24 +97,21 @@ const MotorCurrentGraphPanel: React.FC = () => {
         <div className="controls">
           <button onClick={downloadPNG}>PNG</button>
         </div>
-    </div>
-
-    <div className="chart">
+      </div>
+      <div className="chart">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart margin={{ top: 10, right: 20, bottom: 5, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2f2f2f" />
-
             <XAxis
               dataKey="time"
               type="number"
               domain={['dataMin', 'dataMax']}
-              tickFormatter={formatTime}
+              tickFormatter={(t) => `${Math.round(t)}s`}
               tick={{ fill: '#aaa', fontSize: 10 }}
               axisLine={{ stroke: '#444' }}
               tickLine={{ stroke: '#444' }}
               minTickGap={30}
             />
-
             <YAxis
               domain={[
                 0,
@@ -132,10 +123,9 @@ const MotorCurrentGraphPanel: React.FC = () => {
               tickLine={{ stroke: '#444' }}
               width={55}
             />
-
             <Tooltip
               formatter={(value: number, name: string) => [`${Number(value).toFixed(2)} A`, name]}
-              labelFormatter={(value) => formatTime(Number(value))}
+              labelFormatter={(value) => `${Number(value).toFixed(1)}s`}
               contentStyle={{
                 background: '#222',
                 border: '1px solid #444',
@@ -143,9 +133,7 @@ const MotorCurrentGraphPanel: React.FC = () => {
                 color: '#fff',
               }}
             />
-
             <Legend wrapperStyle={{ color: '#f1f1f1', fontSize: 12 }} />
-
             {KEYS.map((key) => (
               <Line
                 key={key}
