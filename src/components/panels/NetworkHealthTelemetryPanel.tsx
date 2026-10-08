@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from "react";
-import ROSLIB from "roslib";
+import { Topic } from "roslib";
 import { useROS } from "@/ros/ROSContext";
 
 const dotStyle = (up: boolean): React.CSSProperties => ({
@@ -63,80 +63,82 @@ const NetworkHealthTelemetryPanel: React.FC = () => {
   useEffect(() => {
     if (!ros) return;
 
-    const bandwidthTxTopic = new ROSLIB.Topic({
+    type Float32Msg = { data: number };
+
+    const bandwidthTxTopic = new Topic<Float32Msg>({
       ros,
       name: "/snmp_network_stats/bandwidth_tx",
       messageType: "std_msgs/msg/Float32",
     });
 
-    const bandwidthRxTopic = new ROSLIB.Topic({
+    const bandwidthRxTopic = new Topic<Float32Msg>({
       ros,
       name: "/snmp_network_stats/bandwidth_rx",
       messageType: "std_msgs/msg/Float32",
     });
 
-    const throughputTxTopic = new ROSLIB.Topic({
+    const throughputTxTopic = new Topic<Float32Msg>({
       ros,
       name: "/snmp_network_stats/throughput_tx",
       messageType: "std_msgs/msg/Float32",
     });
 
-    const throughputRxTopic = new ROSLIB.Topic({
+    const throughputRxTopic = new Topic<Float32Msg>({
       ros,
       name: "/snmp_network_stats/throughput_rx",
       messageType: "std_msgs/msg/Float32",
     });
 
-    const signalStrengthTopic = new ROSLIB.Topic({
+    const signalStrengthTopic = new Topic<Float32Msg>({
       ros,
       name: "/snmp_network_stats/signal_strength",
       messageType: "std_msgs/msg/Float32",
     });
 
-    const noiseFloorTopic = new ROSLIB.Topic({
+    const noiseFloorTopic = new Topic<Float32Msg>({
       ros,
       name: "/snmp_network_stats/noise_floor",
       messageType: "std_msgs/msg/Float32",
     });
 
-    const ccqTxTopic = new ROSLIB.Topic({
+    const ccqTxTopic = new Topic<Float32Msg>({
       ros,
       name: "/snmp_network_stats/ccq_tx",
       messageType: "std_msgs/msg/Float32",
     });
 
-    const handleBandwidthTx = (msg: ROSLIB.Message) => {
-      const data = (msg as any).data as number;
+    const handleBandwidthTx = (msg: Float32Msg) => {
+      const data = msg.data;
       setStats((prev) => ({ ...prev, bandwidthTx: data }));
     };
 
-    const handleBandwidthRx = (msg: ROSLIB.Message) => {
-      const data = (msg as any).data as number;
+    const handleBandwidthRx = (msg: Float32Msg) => {
+      const data = msg.data;
       setStats((prev) => ({ ...prev, bandwidthRx: data }));
     };
 
-    const handleThroughputTx = (msg: ROSLIB.Message) => {
-      const data = (msg as any).data as number;
+    const handleThroughputTx = (msg: Float32Msg) => {
+      const data = msg.data;
       setStats((prev) => ({ ...prev, throughputTx: data }));
     };
 
-    const handleThroughputRx = (msg: ROSLIB.Message) => {
-      const data = (msg as any).data as number;
+    const handleThroughputRx = (msg: Float32Msg) => {
+      const data = msg.data;
       setStats((prev) => ({ ...prev, throughputRx: data }));
     };
 
-    const handleSignalStrength = (msg: ROSLIB.Message) => {
-      const data = (msg as any).data as number;
+    const handleSignalStrength = (msg: Float32Msg) => {
+      const data = msg.data;
       setStats((prev) => ({ ...prev, signalStrength: data }));
     };
 
-    const handleNoiseFloor = (msg: ROSLIB.Message) => {
-      const data = (msg as any).data as number;
+    const handleNoiseFloor = (msg: Float32Msg) => {
+      const data = msg.data;
       setStats((prev) => ({ ...prev, noiseFloor: data }));
     };
 
-    const handleCcqTx = (msg: ROSLIB.Message) => {
-      const data = (msg as any).data as number;
+    const handleCcqTx = (msg: Float32Msg) => {
+      const data = msg.data;
       setStats((prev) => ({ ...prev, ccqTx: data }));
     };
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import ROSLIB from 'roslib';
+import { Service, Topic } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
 type MotorStatus = {
@@ -10,6 +10,8 @@ type MotorStatus = {
   active_errors: number;
   remaining: number;
 };
+
+type MotorStatusMsg = Omit<MotorStatus, 'remaining'>;
 
 const MOTORS = {
   fl_d: { label: 'FLeft Drive', topic: '/Left_front_wheel_joint/status' },
@@ -96,14 +98,13 @@ const MotorStatusPanel: React.FC = () => {
 
     setResettingMotors(prev => ({ ...prev, [key]: true }));
 
-    const service = new ROSLIB.Service({
+    const service = new Service<{}, { success: boolean, message: string }>({
       ros,
       name: getClearErrorsServiceName(topic),
       serviceType: 'std_srvs/srv/Trigger',
     });
 
-    service.callService(
-      new ROSLIB.ServiceRequest({}),
+    service.callService({},
       () => {
         setMotorStats(prev => ({
           ...prev,
@@ -134,14 +135,15 @@ const MotorStatusPanel: React.FC = () => {
     const unsubscribers = (
       Object.entries(MOTORS) as [MotorKey, typeof MOTORS[MotorKey]][]
     ).map(([key, { topic }]) => {
-      const rosTopic = new ROSLIB.Topic({
+
+      const rosTopic = new Topic<MotorStatusMsg>({
         ros,
         name: topic,
         messageType: 'ros_phoenix/msg/MotorStatus',
         throttle_rate: 100,
       });
 
-      const handler = (msg: any) => {
+      const handler = (msg: MotorStatusMsg) => {
         setMotorStats(prev => ({
           ...prev,
           [key]: {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import ROSLIB from 'roslib';
+import { Topic } from 'roslib';
 import { useROS } from '@/ros/ROSContext';
 
 type NodeInfo = {
@@ -18,13 +18,13 @@ const NodeStatusPanel: React.FC = () => {
   useEffect(() => {
     if (!ros) return;
 
-    const topic = new ROSLIB.Topic({
+    const topic = new Topic<{ nodes: string[] }>({
       ros,
       name: '/system/nodes',
       messageType: 'interfaces/msg/NodeList',
     });
 
-    const handleMsg = (msg: any) => {
+    const handleMsg = (msg: { nodes: string[] }) => {
       try {
         const now = Date.now();
 
