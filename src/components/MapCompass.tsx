@@ -24,6 +24,7 @@ const MapCompass: React.FC = () => {
     const { ros, connectionStatus: rosStatus } = useROS();
     const [heading, setHeading] = useState<number | null>(null);
     const [valid, setValid] = useState<boolean>(false);
+    const [headingAccuracy, setHeadingAccuracy] = useState<number | null>(null);
 
     useEffect(() => {
         if (!ros) return;
@@ -36,10 +37,15 @@ const MapCompass: React.FC = () => {
         });
 
         const handleHeading = (msg: any) => {
-            if (msg.orientation_covariance[8] > 50) {
+            const yawVariance = msg.orientation_covariance?.[8];
+
+            setHeadingAccuracy((2 * Math.sqrt(yawVariance) * 180) / Math.PI);
+
+            if (yawVariance > 50) {
                 setValid(false);
                 return;
             }
+
             const heading = headingFromQuaternion(msg.orientation);
             setValid(true);
             setHeading(heading);
@@ -88,6 +94,18 @@ const MapCompass: React.FC = () => {
                     );
                 })}
                 </svg>
+            <div
+                style={{
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '0.9rem',
+                    width: 'fit-content',
+                }}
+            >
+                Accuracy: {headingAccuracy !== null ? `±${headingAccuracy.toFixed(2)}°` : 'N/A'} (2σ)
+            </div>
         </div>
     );
 }
