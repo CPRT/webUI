@@ -30,6 +30,7 @@ import MorseTransmissionPanel from './MorseTransmissionPanel';
 import RtpStats from './RtpStats';
 import TopicEchoPanel from './TopicEchoPanel';
 import DriveThrottlePanel from './DriveThrottlePanel';
+import InterfaceManagerPanel from './InterfaceManagerPanel';
 
 import { ROVER_IP } from '@/constants';
 
@@ -70,6 +71,7 @@ const TILE_REGISTRY = {
   headlightControlPanel: { title: 'Headlights', render: () => <HeadlightControlPanel /> },
   morseTransmissionPanel: { title: 'Morse Transmission', render: () => <MorseTransmissionPanel /> },
   echoPanel: { title: 'Topic Echo', render: () => <TopicEchoPanel /> },
+  interfaceManagerPanel: { title: 'Interface Manager', render: () => <InterfaceManagerPanel /> },
 } satisfies Record<string, TileDefinition>;
 
 type TileType = keyof typeof TILE_REGISTRY;
