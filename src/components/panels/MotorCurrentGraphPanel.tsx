@@ -32,7 +32,7 @@ const CURRENT_MOTORS = {
 type MotorKey = keyof typeof CURRENT_MOTORS;
 const KEYS = Object.keys(CURRENT_MOTORS) as MotorKey[];
 
-type Point = { time: number; value: number }; // time = seconds since the panel opened
+type Point = { time: number; value: number }; // time = Date.now() when the message arrived (ms)
 type CurrentHistory = Record<MotorKey, Point[]>;
 
 const emptyCurrentHistory = () => Object.fromEntries(KEYS.map((key) => [key, []])) as unknown as CurrentHistory;
@@ -41,7 +41,6 @@ const MotorCurrentGraphPanel: React.FC = () => {
   const { ros } = useROS();
   const [currentHistory, setCurrentHistory] = useState<CurrentHistory>(emptyCurrentHistory);
   const containerRef = useRef<HTMLDivElement>(null);
-  const startTime = useRef(Date.now());
 
   useEffect(() => {
     if (!ros) return;
@@ -57,8 +56,8 @@ const MotorCurrentGraphPanel: React.FC = () => {
         const value = Number(msg.output_current);
         if (!Number.isFinite(value)) return;
 
-        const now = (Date.now() - startTime.current) / 1000;
-        const cutoff = now - WINDOW_SEC;
+        const now = Date.now();
+        const cutoff = now - WINDOW_SEC * 1000;
 
         setCurrentHistory((prev) => {
           const next = {} as CurrentHistory;
@@ -106,7 +105,7 @@ const MotorCurrentGraphPanel: React.FC = () => {
               dataKey="time"
               type="number"
               domain={['dataMin', 'dataMax']}
-              tickFormatter={(t) => `${Math.round(t)}s`}
+              tickFormatter={(t) => `${Math.round((Date.now() - t) / 1000)}s ago`}
               tick={{ fill: '#aaa', fontSize: 10 }}
               axisLine={{ stroke: '#444' }}
               tickLine={{ stroke: '#444' }}
@@ -125,7 +124,7 @@ const MotorCurrentGraphPanel: React.FC = () => {
             />
             <Tooltip
               formatter={(value: number, name: string) => [`${Number(value).toFixed(2)} A`, name]}
-              labelFormatter={(value) => `${Number(value).toFixed(1)}s`}
+              labelFormatter={(value) => `${((Date.now() - Number(value)) / 1000).toFixed(1)}s ago`}
               contentStyle={{
                 background: '#222',
                 border: '1px solid #444',
