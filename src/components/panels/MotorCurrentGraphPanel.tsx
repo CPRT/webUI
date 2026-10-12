@@ -117,6 +117,7 @@ const MotorCurrentGraphPanel: React.FC = () => {
                 (dataMax: number) => Number.isFinite(dataMax) ? Math.max(DEFAULT_MAX_AMPS, Math.ceil(dataMax)) : DEFAULT_MAX_AMPS,
               ]}
               unit="A"
+              tickFormatter={(c) => Number(c).toFixed(2)}
               tick={{ fill: '#aaa', fontSize: 10 }}
               axisLine={{ stroke: '#444' }}
               tickLine={{ stroke: '#444' }}
