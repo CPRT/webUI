@@ -52,18 +52,18 @@ const TILE_REGISTRY = {
   },
   rosMonitor: { title: 'System Telemetry', category: 'system', render: () => <SystemTelemetryPanel /> },
   networkHealthMonitor: { title: 'Connection Health', category: 'comms', render: () => <NetworkHealthTelemetryPanel /> },
-  orientationDisplay: { title: 'Rover Orientation', category: 'navigation', render: () => <OrientationDisplayPanel /> },
+  orientationDisplay: { title: 'Rover Orientation', category: 'armScience', render: () => <OrientationDisplayPanel /> },
   videoControls: { title: 'Video Stream', category: 'video', render: () => <VideoControls /> },
   rtpStats: { title: 'RTP Statistics', category: 'video', render: () => <RtpStats /> },
-  driveThrottlePanel: { title: 'Drive Throttle', category: 'drivePower', render: () => <DriveThrottlePanel /> },
+  driveThrottlePanel: { title: 'Drive Throttle', category: 'drive', render: () => <DriveThrottlePanel /> },
   waypointList: { title: 'Waypoint List', category: 'navigation', render: () => <WaypointList /> },
   goalSetter: { title: 'Nav2', category: 'navigation', render: () => <GoalSetterPanel /> },
-  motorStatusPanel: { title: 'Motor Status', category: 'drivePower', render: () => <MotorStatusPanel /> },
+  motorStatusPanel: { title: 'Motor Status', category: 'drive', render: () => <MotorStatusPanel /> },
   nodeStatusPanel: { title: 'Node Status', category: 'system', render: () => <NodeStatusPanel /> },
-  antennaControlPanel: { title: 'Antenna Control', category: 'armScience', render: () => <AntennaControlPanel /> },
+  antennaControlPanel: { title: 'Antenna Control', category: 'comms', render: () => <AntennaControlPanel /> },
   scienceControlPanel: { title: 'Science Motor Control', category: 'armScience', render: () => <ScienceControlPanel /> },
   scienceSensorPanel: { title: 'Science Sensor Readouts', category: 'armScience', render: () => <ScienceSensorPanel /> },
-  pdbRails: { title: 'PDB Rails', category: 'drivePower', render: () => <PDBRailsPanel /> },
+  pdbRails: { title: 'PDB Rails', category: 'system', render: () => <PDBRailsPanel /> },
   armControlPanel: { title: 'Arm Control', category: 'armScience', render: () => <ArmControlPanel /> },
   webRTCClient: {
     title: 'WebRTC Client',
@@ -71,15 +71,15 @@ const TILE_REGISTRY = {
     render: () => <WebRTCClient config={{ signalingUrl: `ws://${ROVER_IP}:8444` }} />,
   },
   timerPanel: { title: 'Multi-Timer', category: 'system', render: () => <TimerPanel /> },
-  headlightControlPanel: { title: 'Headlights', category: 'drivePower', render: () => <HeadlightControlPanel /> },
+  headlightControlPanel: { title: 'Headlights', category: 'drive', render: () => <HeadlightControlPanel /> },
   morseTransmissionPanel: { title: 'Morse Transmission', category: 'armScience', render: () => <MorseTransmissionPanel /> },
   echoPanel: { title: 'Topic Echo', category: 'system', render: () => <TopicEchoPanel /> },
-  motorCurrentGraphPanel: { title: 'Motor Current', category: 'drivePower', render: () => <MotorCurrentGraphPanel /> },
+  motorCurrentGraphPanel: { title: 'Motor Current', category: 'drive', render: () => <MotorCurrentGraphPanel /> },
 } satisfies Record<string, TileDefinition>;
 
 const TILE_CATEGORIES = {
   navigation: { label: 'Navigation', color: '#4fc3f7' }, // light blue
-  drivePower: { label: 'Drive & Power', color: '#ffb74d' }, // orange
+  drive: { label: 'Drive', color: '#ffb74d' }, // orange
   video: { label: 'Video', color: '#ce93d8' }, // purple
   comms: { label: 'Comms', color: '#81c784' }, // green
   armScience: { label: 'Arm & Science', color: '#f48fb1' }, // pink
