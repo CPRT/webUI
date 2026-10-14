@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import ROSLIB from "roslib";
+import { Topic } from "roslib";
 import { useROS } from "@/ros/ROSContext";
 
 type RtpStatsMsg = {
@@ -30,13 +30,13 @@ const RtpStats: React.FC = () => {
       return;
     }
 
-    const topic = new ROSLIB.Topic({
+    const topic = new Topic<RtpStatsMsg>({
       ros,
       name: "/rtp_client_node/rtp_stats",
       messageType: "interfaces/msg/RtpStats",
     });
 
-    const onMsg = (msg: any) => {
+    const onMsg = (msg: RtpStatsMsg) => {
       const newData: RtpStatsMsg = {
         num_pushed: msg.num_pushed,
         num_lost: msg.num_lost,
