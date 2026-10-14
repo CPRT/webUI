@@ -41,7 +41,7 @@ export function useGpsHeading(){
 
             setHeadingAccuracy((2 * Math.sqrt(yawVariance) * 180) / Math.PI);
 
-            if (yawVariance > 50) {
+            if (yawVariance > 0.5) {
                 setValid(false);
                 return;
             }

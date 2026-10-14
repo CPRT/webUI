@@ -20,7 +20,7 @@ const MapCompass: React.FC = () => {
             <svg width="125" height="125" viewBox="0 0 200 200">
                 {/* <!-- Outer Circle --> */}
                 <circle cx="100" cy="100" r={RIM_RADIUS} fill="white" fillOpacity="0.5" stroke="black" strokeWidth="2" />
-                {heading !== null && headingAccuracy !== null && headingAccuracy >= 180 && (
+                    {heading !== null && headingAccuracy !== null && headingAccuracy <= 180 && (
                     <path
                         d={arcPath(Math.max(headingAccuracy, 2), RIM_RADIUS)}
                         fill="none"
