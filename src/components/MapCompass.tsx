@@ -1,59 +1,35 @@
-import React, {useEffect, useState} from "react";
-import ROSLIB from 'roslib';
-import { useROS } from '@/ros/ROSContext';
-
-type Quaternion = {
-  x: number;
-  y: number;
-  z: number;
-  w: number;
-};
-
-//extract yaw, convert to degrees, normalize
-const headingFromQuaternion = (q: Quaternion): number => {
-    const { x, y, z, w } = q;
-    const yaw = Math.atan2(
-        2.0 * (w * z + x * y),
-        1.0 - 2.0 * (y * y + z * z)
-    );
-    const heading = (yaw * 180) / Math.PI;
-    return (heading + 360) % 360;
-};
+import React from "react";
+import { useGpsHeading } from '@/hooks/useGpsHeading';
 
 const MapCompass: React.FC = () => {
-    const { ros, connectionStatus: rosStatus } = useROS();
-    const [heading, setHeading] = useState<number | null>(null);
-    const [valid, setValid] = useState<boolean>(false);
+    const { heading, valid, headingAccuracy } = useGpsHeading();
+    const RIM_RADIUS = 95;
 
-    useEffect(() => {
-        if (!ros) return;
+    // Arc along the rim indicating the accuracy of the heading
+    const arcPath = (halfAngleDeg: number, r: number): string => {
+        const a = (halfAngleDeg * Math.PI) / 180;
+        const x1 = 100 - r * Math.sin(a);
+        const x2 = 100 + r * Math.sin(a);
+        const y = 100 - r * Math.cos(a);
+        const largeArc = halfAngleDeg > 90 ? 1 : 0;
+        return `M ${x1} ${y} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y}`;
+    };
 
-        const headingTopic = new ROSLIB.Topic({
-            ros,
-            name: '/gps/heading',
-            messageType: 'sensor_msgs/Imu',
-            throttle_rate: 100,
-        });
-
-        const handleHeading = (msg: any) => {
-            if (msg.orientation_covariance[8] > 50) {
-                setValid(false);
-                return;
-            }
-            const heading = headingFromQuaternion(msg.orientation);
-            setValid(true);
-            setHeading(heading);
-        };
-
-        headingTopic.subscribe(handleHeading);
-        return () => headingTopic.unsubscribe(handleHeading);
-    }, [ros]);
-
-    return(
-        <div> 
+    return (
+        <div>
             <svg width="125" height="125" viewBox="0 0 200 200">
                 {/* <!-- Outer Circle --> */}
-                <circle cx="100" cy="100" r="95" fill="white" fillOpacity="0.5" stroke="black" strokeWidth="2" />
+                <circle cx="100" cy="100" r={RIM_RADIUS} fill="white" fillOpacity="0.5" stroke="black" strokeWidth="2" />
+                    {heading !== null && headingAccuracy !== null && headingAccuracy <= 180 && (
+                    <path
+                        d={arcPath(Math.max(headingAccuracy, 2), RIM_RADIUS)}
+                        fill="none"
+                        stroke={valid ? "red" : "grey"}
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        transform={`rotate(${heading} 100 100)`}
+                    />
+                )}
                 {/* <!-- Compass Needle --> */}
                 <polygon
                     id="compass-needle"
@@ -76,18 +52,18 @@ const MapCompass: React.FC = () => {
                     const x2 = 100 + Math.cos(angle) * 85;
                     const y2 = 100 + Math.sin(angle) * 85;
                     return (
-                    <line
-                        key={i}
-                        x1={x1}
-                        y1={y1}
-                        x2={x2}
-                        y2={y2}
-                        stroke="black"
-                        strokeWidth="1"
-                    />
+                        <line
+                            key={i}
+                            x1={x1}
+                            y1={y1}
+                            x2={x2}
+                            y2={y2}
+                            stroke="black"
+                            strokeWidth="1"
+                        />
                     );
                 })}
-                </svg>
+            </svg>
         </div>
     );
 }

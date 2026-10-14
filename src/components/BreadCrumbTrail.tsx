@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Circle, Polyline, useMap } from 'react-leaflet';
 import { useROS } from '@/ros/ROSContext';
 import { useWaypoints } from '@/contexts/WaypointContext';
+import { useGpsHeading } from '@/hooks/useGpsHeading';
 import ROSLIB from 'roslib';
 
 interface Breadcrumb {
@@ -36,6 +37,7 @@ export const haversineDistance = (
 const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
   const map = useMap();
   const { ros, connectionStatus } = useROS();
+  const { headingAccuracy } = useGpsHeading();
   const { addWaypoint } = useWaypoints();
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
   const [paused, setPaused] = useState<boolean>(false);
@@ -176,6 +178,10 @@ const BreadcrumbTrail: React.FC<BreadcrumbTrailProps> = ({ downloadPNG }) => {
         ) : (
           <div style={{ marginBottom: '0.125rem' }}>No fix data received yet.</div>
         )}
+        <div style={{ marginBottom: '0.125rem' }}>
+          <strong>Heading Accuracy:</strong>{' '}
+          {headingAccuracy !== null ? `±${headingAccuracy.toFixed(2)}°` : 'N/A'} (2σ)
+        </div>
         <div style={{ marginBottom: '0.125rem' }}>
           <strong>Total Fixes:</strong> {breadcrumbs.length}
         </div>
