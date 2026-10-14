@@ -2,10 +2,36 @@
 
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import ROSLIB from 'roslib';
+import { Topic } from 'roslib';
 import URDFLoader, { URDFRobot } from 'urdf-loader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { useROS } from '@/ros/ROSContext';
+
+interface TFVector3 {
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface TFQuaternion {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+}
+
+interface TransformStamped {
+  header: { frame_id: string };
+  child_frame_id: string;
+  transform: {
+    translation: TFVector3;
+    rotation: TFQuaternion;
+  };
+}
+
+interface TFMessage {
+  transforms: TransformStamped[];
+}
 
 interface TransformData {
   translation: THREE.Vector3;
@@ -317,13 +343,13 @@ const OrientationDisplayPanel: React.FC = () => {
 
     let descriptionLoaded = false;
 
-    const robotDescriptionTopic = new ROSLIB.Topic({
+    const robotDescriptionTopic = new Topic<{ data: string }>({
       ros,
       name: '/robot_description',
       messageType: 'std_msgs/String',
     });
 
-    const handleRobotDescription = (message: any) => {
+    const handleRobotDescription = (message: { data: string }) => {
       if (descriptionLoaded || !message.data) {
         return;
       }
@@ -402,7 +428,10 @@ const OrientationDisplayPanel: React.FC = () => {
   useEffect(() => {
     if (!ros) return;
 
-    const jointStateTopic = new ROSLIB.Topic({
+    const jointStateTopic = new Topic<{
+      name?: string[];
+      position?: number[];
+    }>({
       ros,
       name: '/joint_states',
       messageType: 'sensor_msgs/JointState',
@@ -448,7 +477,7 @@ const OrientationDisplayPanel: React.FC = () => {
   useEffect(() => {
     if (!ros) return;
 
-    const tfTopic = new ROSLIB.Topic({
+    const tfTopic = new Topic<TFMessage>({
       ros,
       name: '/tf',
       messageType: 'tf2_msgs/TFMessage',
@@ -456,7 +485,7 @@ const OrientationDisplayPanel: React.FC = () => {
       queue_length: 1,
     });
 
-    const tfStaticTopic = new ROSLIB.Topic({
+    const tfStaticTopic = new Topic<TFMessage>({
       ros,
       name: '/tf_static',
       messageType: 'tf2_msgs/TFMessage',
@@ -464,7 +493,7 @@ const OrientationDisplayPanel: React.FC = () => {
     });
 
     const updateTransforms = (
-      message: any,
+      message: TFMessage,
       destination: Map<string, TransformEdge>,
     ) => {
       for (const stampedTransform of message.transforms ?? []) {
@@ -514,14 +543,14 @@ const OrientationDisplayPanel: React.FC = () => {
       }
     };
 
-    const handleTF = (message: any) => {
+    const handleTF = (message: TFMessage) => {
       updateTransforms(
         message,
         dynamicTransformsRef.current,
       );
     };
 
-    const handleStaticTF = (message: any) => {
+    const handleStaticTF = (message: TFMessage) => {
       updateTransforms(
         message,
         staticTransformsRef.current,
