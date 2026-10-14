@@ -36,49 +36,71 @@ import { ROVER_IP } from '@/constants';
 
 interface TileDefinition {
   title: string;
+  category: TileCategory;
   render: () => ReactElement;
 }
 
 const TILE_REGISTRY = {
   mapView: {
     title: 'Map View',
+    category: 'navigation',
     render: () => (
       <div style={{ height: '100%', backgroundColor: '#121212' }}>
         <MapView offline />
       </div>
     ),
   },
-  rosMonitor: { title: 'System Telemetry', render: () => <SystemTelemetryPanel /> },
-  networkHealthMonitor: { title: 'Connection Health', render: () => <NetworkHealthTelemetryPanel /> },
-  orientationDisplay: { title: 'Rover Orientation', render: () => <OrientationDisplayPanel /> },
-  videoControls: { title: 'Video Stream', render: () => <VideoControls /> },
-  rtpStats: { title: 'RTP Statistics', render: () => <RtpStats /> },
-  driveThrottlePanel: { title: 'Drive Throttle', render: () => <DriveThrottlePanel /> },
-  waypointList: { title: 'Waypoint List', render: () => <WaypointList /> },
-  goalSetter: { title: 'Nav2', render: () => <GoalSetterPanel /> },
-  motorStatusPanel: { title: 'Motor Status', render: () => <MotorStatusPanel /> },
-  nodeStatusPanel: { title: 'Node Status', render: () => <NodeStatusPanel /> },
-  antennaControlPanel: { title: 'Antenna Control', render: () => <AntennaControlPanel /> },
-  scienceControlPanel: { title: 'Science Motor Control', render: () => <ScienceControlPanel /> },
-  scienceSensorPanel: { title: 'Science Sensor Readouts', render: () => <ScienceSensorPanel /> },
-  pdbRails: { title: 'PDB Rails', render: () => <PDBRailsPanel /> },
-  armControlPanel: { title: 'Arm Control', render: () => <ArmControlPanel /> },
+  rosMonitor: { title: 'System Telemetry', category: 'system', render: () => <SystemTelemetryPanel /> },
+  networkHealthMonitor: { title: 'Connection Health', category: 'comms', render: () => <NetworkHealthTelemetryPanel /> },
+  orientationDisplay: { title: 'Rover Orientation', category: 'armScience', render: () => <OrientationDisplayPanel /> },
+  videoControls: { title: 'Video Stream', category: 'video', render: () => <VideoControls /> },
+  rtpStats: { title: 'RTP Statistics', category: 'video', render: () => <RtpStats /> },
+  driveThrottlePanel: { title: 'Drive Throttle', category: 'drive', render: () => <DriveThrottlePanel /> },
+  waypointList: { title: 'Waypoint List', category: 'navigation', render: () => <WaypointList /> },
+  goalSetter: { title: 'Nav2', category: 'navigation', render: () => <GoalSetterPanel /> },
+  motorStatusPanel: { title: 'Motor Status', category: 'drive', render: () => <MotorStatusPanel /> },
+  nodeStatusPanel: { title: 'Node Status', category: 'system', render: () => <NodeStatusPanel /> },
+  antennaControlPanel: { title: 'Antenna Control', category: 'comms', render: () => <AntennaControlPanel /> },
+  scienceControlPanel: { title: 'Science Motor Control', category: 'armScience', render: () => <ScienceControlPanel /> },
+  scienceSensorPanel: { title: 'Science Sensor Readouts', category: 'armScience', render: () => <ScienceSensorPanel /> },
+  pdbRails: { title: 'PDB Rails', category: 'system', render: () => <PDBRailsPanel /> },
+  armControlPanel: { title: 'Arm Control', category: 'armScience', render: () => <ArmControlPanel /> },
   webRTCClient: {
     title: 'WebRTC Client',
+    category: 'video',
     render: () => <WebRTCClient config={{ signalingUrl: `ws://${ROVER_IP}:8444` }} />,
   },
-  timerPanel: { title: 'Multi-Timer', render: () => <TimerPanel /> },
-  headlightControlPanel: { title: 'Headlights', render: () => <HeadlightControlPanel /> },
-  morseTransmissionPanel: { title: 'Morse Transmission', render: () => <MorseTransmissionPanel /> },
-  echoPanel: { title: 'Topic Echo', render: () => <TopicEchoPanel /> },
-  motorCurrentGraphPanel: { title: 'Motor Current', render: () => <MotorCurrentGraphPanel />},
+  timerPanel: { title: 'Multi-Timer', category: 'system', render: () => <TimerPanel /> },
+  headlightControlPanel: { title: 'Headlights', category: 'drive', render: () => <HeadlightControlPanel /> },
+  morseTransmissionPanel: { title: 'Morse Transmission', category: 'armScience', render: () => <MorseTransmissionPanel /> },
+  echoPanel: { title: 'Topic Echo', category: 'system', render: () => <TopicEchoPanel /> },
+  motorCurrentGraphPanel: { title: 'Motor Current', category: 'drive', render: () => <MotorCurrentGraphPanel /> },
 } satisfies Record<string, TileDefinition>;
 
+const TILE_CATEGORIES = {
+  navigation: { label: 'Navigation', color: '#4fc3f7' }, // light blue
+  drive: { label: 'Drive', color: '#ffb74d' }, // orange
+  video: { label: 'Video', color: '#ce93d8' }, // purple
+  comms: { label: 'Comms', color: '#81c784' }, // green
+  armScience: { label: 'Arm & Science', color: '#f48fb1' }, // pink
+  system: { label: 'System & Debug', color: '#b0bec5' }, // grey
+};
+
+type TileCategory = keyof typeof TILE_CATEGORIES;
 type TileType = keyof typeof TILE_REGISTRY;
 type TileId = `${TileType}:${number}`;
 
 // Object.keys preserves insertion order for string keys
 const ALL_TILE_TYPES = Object.keys(TILE_REGISTRY) as TileType[];
+
+const TILE_GROUPS = (Object.keys(TILE_CATEGORIES) as TileCategory[])
+  .map((category) => ({
+    category,
+    types: ALL_TILE_TYPES
+      .filter((t) => TILE_REGISTRY[t].category === category)
+      .sort((a, b) => TILE_REGISTRY[a].title.localeCompare(TILE_REGISTRY[b].title)),
+  }))
+  .filter((g) => g.types.length > 0)
 
 function tileTypeOf(id: TileId): TileType {
   return id.split(':', 1)[0] as TileType;
@@ -86,10 +108,10 @@ function tileTypeOf(id: TileId): TileType {
 
 type PendingAdd =
   | {
-      pathKey: string;
-      path: MosaicPath;
-      direction: 'row' | 'column';
-    }
+    pathKey: string;
+    path: MosaicPath;
+    direction: 'row' | 'column';
+  }
   | null;
 
 function collectMaxTileNumber(node: MosaicNode<TileId> | null): number {
@@ -248,11 +270,18 @@ const Controls = memo<{
           <option value="" disabled>
             Pick tile…
           </option>
-          {ALL_TILE_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {TILE_REGISTRY[t].title}
-            </option>
-          ))}
+          {TILE_GROUPS.map(({ category, types }) => {
+            const { label, color } = TILE_CATEGORIES[category];
+            return (
+              <optgroup key={category} label={label} style={{ color }}>
+                {types.map((t) => (
+                  <option key={t} value={t} style={{ color }}>
+                    {TILE_REGISTRY[t].title}
+                  </option>
+                ))}
+              </optgroup>
+            );
+          })}
         </select>
       ) : null}
     </div>
