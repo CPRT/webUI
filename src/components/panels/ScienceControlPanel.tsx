@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useROS } from '@/ros/ROSContext';
-import ROSLIB from 'roslib';
+import { Topic, Service } from 'roslib';
 
 // --------------------
 // Types + Config
 // --------------------
+
+interface RunPolarimeterRequest { title: string };
 
 interface RunPolarimeterResponse {
   success: boolean;
@@ -65,7 +67,19 @@ interface MotorStatus {
   fwd_limit: boolean;
   rev_limit: boolean;
   active_errors: number;
-}
+};
+
+interface ScienceMotorMsg {
+  pin: number;
+  duty_cycle: number;
+  duration: number;
+  ramp: number
+};
+
+interface ScienceServoMsg {
+  pin: number;
+  us: number;
+};
 
 const DEFAULT_RAMP = 0;
 
@@ -120,20 +134,18 @@ const ScienceControlPanel: React.FC = () => {
 
     const dutyCycle = Math.min(Math.max(value, 0), 100);
 
-    const topic = new ROSLIB.Topic({
+    const topic = new Topic<ScienceMotorMsg>({
       ros,
       name: '/science/motor',
       messageType: 'interfaces/msg/ScienceMotor',
     });
 
-    topic.publish(
-      new ROSLIB.Message({
-        pin: motorID,
-        duty_cycle: dutyCycle,
-        duration: safeDuration,
-        ramp,
-      })
-    );
+    topic.publish({
+      pin: motorID,
+      duty_cycle: dutyCycle,
+      duration: safeDuration,
+      ramp,
+    });
   };
 
   const sendServo: SendServoFn = (
@@ -142,18 +154,16 @@ const ScienceControlPanel: React.FC = () => {
   ) => {
     if (!ros) return;
 
-    const topic = new ROSLIB.Topic({
+    const topic = new Topic<ScienceServoMsg>({
       ros,
       name: '/science/servo',
       messageType: 'interfaces/msg/ScienceServo',
     });
 
-    topic.publish(
-      new ROSLIB.Message({
-        pin: motorID,
-        us: value,
-      })
-    );
+    topic.publish({
+      pin: motorID,
+      us: value,
+    });
   };
 
   const handlePolar = () => {
@@ -161,14 +171,13 @@ const ScienceControlPanel: React.FC = () => {
     
     setPolarStatus("Waiting...");
 
-    const polarSrv = new ROSLIB.Service({
+    const polarSrv = new Service<RunPolarimeterRequest, RunPolarimeterResponse>({
       ros,
       name: "/science/run_polarimeter",
       serviceType: "interfaces/srv/RunPolarimeter",
     });
 
-    polarSrv.callService(
-      new ROSLIB.ServiceRequest({title: title}),
+    polarSrv.callService({title: title},
       (response: RunPolarimeterResponse) => {
         setPolarStatus(response.success ? "Success: " + response.message : "Failed");
       },
