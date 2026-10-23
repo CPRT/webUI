@@ -86,11 +86,11 @@ const layouts = [
       first: 'webRTCClient:4',
       second: {
         direction: 'column',
-        first: 'nodeStatusPanel:5',
-        second: 'rosMonitor:6',
+        first: 'interfaceManagerPanel:5',
+        second: 'nodeStatusPanel:6',
         splitPercentage: 70
       },
-      splitPercentage: 70,
+      splitPercentage: 60,
     },
     splitPercentage: 30,
   },

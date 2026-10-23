@@ -30,6 +30,7 @@ import MorseTransmissionPanel from './MorseTransmissionPanel';
 import RtpStats from './RtpStats';
 import TopicEchoPanel from './TopicEchoPanel';
 import DriveThrottlePanel from './DriveThrottlePanel';
+import InterfaceManagerPanel from './InterfaceManagerPanel';
 import MotorCurrentGraphPanel from './MotorCurrentGraphPanel';
 
 import { ROVER_IP } from '@/constants';
@@ -75,6 +76,7 @@ const TILE_REGISTRY = {
   morseTransmissionPanel: { title: 'Morse Transmission', category: 'armScience', render: () => <MorseTransmissionPanel /> },
   echoPanel: { title: 'Topic Echo', category: 'system', render: () => <TopicEchoPanel /> },
   motorCurrentGraphPanel: { title: 'Motor Current', category: 'drive', render: () => <MotorCurrentGraphPanel /> },
+  interfaceManagerPanel: { title: 'Interface Manager', category: 'system', render: () => <InterfaceManagerPanel /> },
 } satisfies Record<string, TileDefinition>;
 
 const TILE_CATEGORIES = {
