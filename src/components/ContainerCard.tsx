@@ -49,9 +49,9 @@ const ContainerCard: React.FC<ContainerCardProps> = ({
   };
   const getLogColor = (line: string) => {
     if (/\bERROR\b/.test(line)) return '#ff4d4d';
-    if (/\bWARN\b/.test(line)) return '#ffd966';
-    if (/\bINFO\b/.test(line)) return '#7CFC00';
-    return '#0f0';
+    if (/\bWARN\b/.test(line) || /\bWARNING\b/.test(line)) return '#ffd966';
+    if (/\bINFO\b/.test(line)) return '#87CEEB';
+    return '#ffffff';
   };
 
   // Connect WebSocket logs when running and logsWsUrl changes
