@@ -32,6 +32,7 @@ import TopicEchoPanel from './TopicEchoPanel';
 import DriveThrottlePanel from './DriveThrottlePanel';
 import InterfaceManagerPanel from './InterfaceManagerPanel';
 import MotorCurrentGraphPanel from './MotorCurrentGraphPanel';
+import LinkStatusPanel from './LinkStatusPanel';
 
 import { ROVER_IP } from '@/constants';
 
@@ -77,6 +78,7 @@ const TILE_REGISTRY = {
   echoPanel: { title: 'Topic Echo', category: 'system', render: () => <TopicEchoPanel /> },
   motorCurrentGraphPanel: { title: 'Motor Current', category: 'drive', render: () => <MotorCurrentGraphPanel /> },
   interfaceManagerPanel: { title: 'Interface Manager', category: 'system', render: () => <InterfaceManagerPanel /> },
+  linkStatusPanel: { title: 'Link Status', category: 'system', render: () => <LinkStatusPanel /> }
 } satisfies Record<string, TileDefinition>;
 
 const TILE_CATEGORIES = {
